@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIL-STD 882E · Task 106 · HTS · Interactive Demo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* =============================================================================
+   SEDAC BRAND SYSTEM v3 — PALETTE A (ICON / DEFENSE-FACING)
+   Task 106 · Hazard Tracking System · INTERACTIVE DEMO
+   ============================================================================= */
+:root {
+  --cobalt:      #1A3C8F;
+  --cobalt-dark: #122a66;
+  --cobalt-mid:  #1e4aaa;
+  --red:         #C41E2E;
+  --amber:       #E8B820;
+  --white:       #FFFFFF;
+  --black:       #0D0D0D;
+  --cream:       #F3EEE4;
+  --border:      rgba(255,255,255,0.11);
+  --border-hard: rgba(255,255,255,0.22);
+  --muted:       #7a9fcc;
+  --surface:     #0f2360;
+  --card-bg:     rgba(255,255,255,0.035);
+  --rac-high:    #8E1420;
+  --rac-serious: #C41E2E;
+  --rac-medium:  #C89000;
+  --rac-low:     #2E7D4F;
+  --status-open:      #C41E2E;
+  --status-mitigated: #1e4aaa;
+  --status-closed:    #2E7D4F;
+  --status-accepted:  #C89000;
+  --display: Impact, "Arial Black", sans-serif;
+  --mono:    "Courier New", Courier, monospace;
+  --body:    Arial, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: #081840;
+  color: var(--white);
+  font-family: var(--body);
+  font-size: 11px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* ── DEMO BANNER ── */
+#demo-banner {
+  background: #E8B820;
+  color: #0D0D0D;
+  text-align: center;
+  padding: 7px 24px;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+#demo-banner a {
+  color: #0D0D0D;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0,0,0,.4);
+  text-decoration: none;
+}
+#demo-banner a:hover { border-bottom-color: #000; }
+
+/* ── TOPBAR ── */
+#topbar {
+  position: sticky; top: 32px; z-index: 300;
+  background: var(--black);
+  border-bottom: 3px solid var(--amber);
+  padding: 0 20px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tb-title { font-family:var(--display); font-size:16px; letter-spacing:2.5px; color:var(--amber); text-transform:uppercase; line-height:1; }
+.tb-sub   { font-family:var(--mono); font-size:8px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+.tb-divider { width:1px; height:32px; background:rgba(255,255,255,0.15); flex-shrink:0; }
+.tb-spacer  { flex:1; }
+#top-class  { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--muted); border:1px solid rgba(255,255,255,0.2); padding:3px 8px; }
+.task-badge { font-family:var(--display); font-size:11px; letter-spacing:1.5px; color:var(--black); background:var(--amber); padding:4px 12px; text-transform:uppercase; }
+.demo-badge { font-family:var(--display); font-size:9px; letter-spacing:2px; color:var(--black); background: #E8B820; border: 2px solid #0D0D0D; padding:3px 10px; text-transform:uppercase; }
+.btn-export-demo {
+  font-family:var(--display); font-size:10px; letter-spacing:1.5px;
+  background:rgba(255,255,255,.1); color:var(--muted);
+  border: 1px dashed rgba(255,255,255,.25);
+  padding:6px 14px; cursor:not-allowed; text-transform:uppercase;
+  position:relative;
+}
+.btn-export-demo:hover::after {
+  content:"Export available in the full tool";
+  position:absolute; bottom:-28px; right:0; white-space:nowrap;
+  background:#0D0D0D; border:1px solid var(--amber);
+  color:var(--amber); font-family:var(--mono); font-size:9px;
+  padding:3px 8px; letter-spacing:.5px; pointer-events:none; z-index:100;
+}
+
+/* ── LAYOUT ── */
+#app { padding:0 0 80px; }
+.content { padding:0 24px; }
+
+/* ── SECTION HEADER ── */
+.section-header { display:flex; align-items:center; gap:14px; padding:20px 24px 12px; border-bottom:1px solid var(--border); margin-top:28px; }
+.sec-num { font-family:var(--display); font-size:34px; color:var(--amber); opacity:.28; line-height:1; letter-spacing:-1px; }
+.section-header h2 { font-family:var(--display); font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--white); }
+.sec-desc { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:.8px; }
+
+/* ── ALERTS ── */
+.alert-info    { display:flex; gap:10px; align-items:flex-start; background:rgba(26,60,143,.45); border-left:4px solid var(--cobalt-mid); padding:13px 16px; font-family:var(--mono); font-size:10.5px; color:#b8d0f0; line-height:1.65; }
+.alert-info code { background:rgba(255,255,255,.1); padding:1px 5px; }
+.alert-danger  { display:flex; gap:10px; align-items:flex-start; background:rgba(142,20,32,.22); border-left:4px solid var(--red); padding:11px 14px; font-family:var(--mono); font-size:10px; color:#f8a0a8; margin:6px 0; }
+.alert-warn    { display:flex; gap:10px; align-items:flex-start; background:rgba(232,184,32,.1); border-left:4px solid var(--amber); padding:11px 14px; font-family:var(--mono); font-size:10px; color:#e8d07a; margin:6px 0; }
+.alert-ok      { display:flex; gap:10px; align-items:flex-start; background:rgba(46,125,79,.2); border-left:4px solid var(--rac-low); padding:11px 14px; font-family:var(--mono); font-size:10px; color:#88dfaa; margin:6px 0; }
+.alert-icon    { font-size:15px; flex-shrink:0; margin-top:1px; }
+
+/* ── CARD ── */
+.card { background:var(--card-bg); border:1px solid var(--border); padding:16px 18px; margin:12px 24px 0; }
+.card-title { font-family:var(--display); font-size:10px; letter-spacing:2px; color:var(--amber); text-transform:uppercase; margin-bottom:10px; }
+.flag-cobalt { border-left:3px solid var(--cobalt-mid); }
+.flag-amber  { border-left:3px solid var(--amber); }
+.flag-red    { border-left:3px solid var(--red); }
+.flag-low    { border-left:3px solid var(--rac-low); }
+.hatch-overlay { position:relative; }
+.hatch-overlay::before { content:""; position:absolute; inset:0; background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0,rgba(255,255,255,.025) 1px,transparent 1px,transparent 9px); pointer-events:none; }
+.hatch-overlay > * { position:relative; }
+
+/* ── DEMO DATA INPUT PANEL ── */
+.demo-input-card {
+  background: rgba(232,184,32,.06);
+  border: 1px solid rgba(232,184,32,.3);
+  padding: 20px 22px;
+  margin: 12px 24px 0;
+}
+.demo-dataset-info {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.demo-stat {
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  min-width: 110px;
+}
+.demo-stat-label { font-family:var(--mono); font-size:8px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; }
+.demo-stat-val   { font-family:var(--display); font-size:18px; color:var(--amber); letter-spacing:1px; }
+.demo-locked-slot {
+  border: 1px solid rgba(255,255,255,.1);
+  padding: 12px 14px;
+  background: rgba(0,0,0,.2);
+  position: relative;
+  opacity: .7;
+}
+.demo-locked-slot::after {
+  content: "🔒 DEMO — pre-loaded";
+  position: absolute;
+  top: 8px; right: 10px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--amber);
+  letter-spacing: .5px;
+}
+.demo-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:10px 0; }
+.slot-title  { font-family:var(--display); font-size:10px; letter-spacing:2px; color:var(--amber); text-transform:uppercase; margin-bottom:4px; }
+.slot-status { font-family:var(--mono); font-size:9px; color:#6ecf90; }
+.demo-action-row { display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap; }
+.btn-demo-run {
+  font-family:var(--display); font-size:11px; letter-spacing:2px;
+  background:var(--amber); color:var(--black);
+  border:none; padding:9px 22px; cursor:pointer;
+  text-transform:uppercase; transition:background .15s;
+}
+.btn-demo-run:hover { background:#c9a010; }
+.btn-demo-run:disabled { background:#555; color:#888; cursor:not-allowed; }
+.demo-locked-btn {
+  font-family:var(--mono); font-size:10px; letter-spacing:.5px;
+  background:transparent; color:rgba(255,255,255,.2);
+  border:1px dashed rgba(255,255,255,.15);
+  padding:7px 14px; cursor:not-allowed; text-transform:uppercase;
+  position:relative;
+}
+.demo-locked-btn:hover::after {
+  content: attr(data-tip);
+  position:absolute; bottom:-28px; left:0; white-space:nowrap;
+  background:#0D0D0D; border:1px solid rgba(255,255,255,.2);
+  color:var(--muted); font-family:var(--mono); font-size:9px;
+  padding:3px 8px; pointer-events:none; z-index:100;
+}
+
+/* ── BUTTONS (full tool parity) ── */
+.btn { font-family:var(--mono); font-size:10px; letter-spacing:.5px; border:none; padding:7px 14px; cursor:pointer; transition:opacity .15s; text-transform:uppercase; }
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+.btn-primary   { background:var(--cobalt-mid); color:var(--white); }
+.btn-primary:not(:disabled):hover { background:var(--cobalt); }
+.btn-ghost     { background:transparent; color:var(--muted); border:1px solid var(--border-hard); }
+.btn-ghost:not(:disabled):hover { color:var(--white); border-color:var(--white); }
+
+/* ── META / RESULT CARDS ── */
+.meta-grid { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
+.meta-item { background:rgba(255,255,255,.05); border:1px solid var(--border); padding:8px 14px; min-width:100px; }
+.m-label { font-family:var(--mono); font-size:8px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; }
+.m-val   { font-family:var(--display); font-size:16px; color:var(--amber); letter-spacing:1px; }
+.result-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin:12px 24px; }
+.result-card { border:1px solid var(--border); padding:14px; }
+.result-card.flag-high    { border-color:var(--rac-high);    background:rgba(142,20,32,.15); }
+.result-card.flag-serious { border-color:var(--rac-serious); background:rgba(196,30,46,.12); }
+.result-card.flag-medium  { border-color:var(--rac-medium);  background:rgba(200,144,0,.10); }
+.result-card.flag-low     { border-color:var(--rac-low);     background:rgba(46,125,79,.10); }
+.result-card.flag-ok      { border-color:var(--rac-low);     background:rgba(46,125,79,.10); }
+.r-label { font-family:var(--mono); font-size:8.5px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; margin-bottom:5px; }
+.r-val   { font-family:var(--display); font-size:24px; color:var(--amber); letter-spacing:1px; line-height:1.1; }
+.r-sub   { font-family:var(--mono); font-size:8.5px; color:var(--muted); margin-top:4px; }
+
+/* ── GAUGE ── */
+.gauge-wrap { display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin:12px 0; }
+.gauge-circle { position:relative; width:120px; height:120px; flex-shrink:0; }
+.gauge-circle svg { width:120px; height:120px; transform:rotate(-90deg); }
+.gauge-circle .g-track  { fill:none; stroke:rgba(255,255,255,.08); stroke-width:10; }
+.gauge-circle .g-fill   { fill:none; stroke-width:10; stroke-linecap:butt; transition:stroke-dashoffset .6s ease; }
+.gauge-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.gauge-pct   { font-family:var(--display); font-size:22px; color:var(--amber); line-height:1; }
+.gauge-sublabel { font-family:var(--mono); font-size:7.5px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+.completeness-fields { flex:1; min-width:260px; }
+.cf-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-family:var(--mono); font-size:9.5px; }
+.cf-label { flex:1; color:#c0d4ee; }
+.cf-bar-wrap { width:120px; height:8px; background:rgba(255,255,255,.08); flex-shrink:0; }
+.cf-bar { height:8px; transition:width .4s ease; }
+.cf-pct { width:36px; text-align:right; color:var(--amber); font-size:9px; }
+.cf-count { width:50px; text-align:right; color:var(--muted); font-size:9px; }
+
+/* ── HTS TABLE ── */
+.hts-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 0; }
+.hts-filter  { font-family:var(--mono); font-size:10px; background:rgba(255,255,255,.06); border:1px solid var(--border-hard); color:var(--white); padding:5px 10px; }
+.hts-filter:focus { outline:1px solid var(--amber); }
+.hts-search  { font-family:var(--mono); font-size:10px; background:rgba(255,255,255,.06); border:1px solid var(--border-hard); color:var(--white); padding:5px 10px; width:220px; }
+.hts-search::placeholder { color:var(--muted); }
+.hts-count   { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:.5px; }
+.hts-table-wrap { overflow-x:auto; max-height:480px; overflow-y:auto; }
+table.hts-table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:9.5px; min-width:1400px; }
+table.hts-table thead tr { background:rgba(0,0,0,.5); position:sticky; top:0; z-index:10; }
+table.hts-table thead th { padding:8px 10px; color:var(--amber); text-align:left; border-bottom:2px solid rgba(232,184,32,.4); white-space:nowrap; font-family:var(--display); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; user-select:none; }
+table.hts-table thead th:hover { color:var(--white); }
+table.hts-table thead th.sort-asc::after  { content:" ▲"; opacity:.7; }
+table.hts-table thead th.sort-desc::after { content:" ▼"; opacity:.7; }
+table.hts-table tbody td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,.04); color:#c0d4ee; vertical-align:top; }
+table.hts-table tbody tr:hover { background:rgba(232,184,32,.04); cursor:pointer; }
+table.hts-table tbody tr.row-selected { background:rgba(26,60,143,.4) !important; border-left:3px solid var(--amber); }
+.hts-id { font-family:var(--display); font-size:10px; color:var(--amber); white-space:nowrap; }
+.hts-title { max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── BADGES ── */
+.badge { display:inline-block; font-family:var(--mono); font-size:8px; padding:2px 6px; letter-spacing:.5px; text-transform:uppercase; }
+.badge-high    { background:var(--rac-high);    color:#fff; }
+.badge-serious { background:var(--rac-serious);  color:#fff; }
+.badge-medium  { background:var(--rac-medium);   color:#000; }
+.badge-low     { background:var(--rac-low);      color:#fff; }
+.badge-info    { background:var(--cobalt-mid);   color:#fff; }
+.badge-gray    { background:rgba(255,255,255,.15); color:#aaa; }
+.badge-open      { background:rgba(196,30,46,.3);  color:#f8a0a8; border:1px solid var(--red); }
+.badge-mitigated { background:rgba(30,74,170,.4);  color:#90b8f8; border:1px solid var(--cobalt-mid); }
+.badge-closed    { background:rgba(46,125,79,.5);  color:#fff; }
+.badge-accepted  { background:rgba(232,184,32,.2); color:var(--amber); border:1px solid rgba(232,184,32,.5); }
+.badge-complete   { background:rgba(46,125,79,.3);  color:#88dfaa; border:1px solid var(--rac-low); }
+.badge-planned    { background:rgba(26,60,143,.4);  color:#90b8e8; border:1px solid var(--cobalt-mid); }
+.badge-inprogress { background:rgba(232,184,32,.15);color:var(--amber); border:1px solid rgba(232,184,32,.4); }
+
+/* ── FIELD MATRIX ── */
+.field-matrix { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:6px; margin-top:10px; }
+.field-chip { border:1px solid var(--border); padding:7px 10px; font-family:var(--mono); font-size:9px; }
+.field-chip .fc-name { color:var(--white); margin-bottom:3px; }
+.field-chip .fc-score { font-family:var(--display); font-size:13px; color:var(--amber); }
+.field-chip.fc-ok   { border-color:var(--rac-low);    background:rgba(46,125,79,.1); }
+.field-chip.fc-warn { border-color:var(--amber);      background:rgba(232,184,32,.07); }
+.field-chip.fc-bad  { border-color:var(--rac-serious); background:rgba(196,30,46,.1); }
+
+/* ── TABS ── */
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin:10px 0 0; }
+.tab-btn { font-family:var(--mono); font-size:9.5px; background:transparent; border:none; border-bottom:2px solid transparent; color:var(--muted); padding:7px 14px; cursor:pointer; letter-spacing:.5px; text-transform:uppercase; margin-bottom:-1px; transition:color .12s; }
+.tab-btn:hover { color:var(--white); }
+.tab-btn.active { color:var(--amber); border-bottom-color:var(--amber); }
+.tab-pane { display:none; padding-top:12px; }
+.tab-pane.active { display:block; }
+
+/* ── DATA TABLE ── */
+.data-table-wrap { overflow-x:auto; max-height:380px; overflow-y:auto; }
+table.data-table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:9.5px; }
+table.data-table thead tr { background:rgba(0,0,0,.4); position:sticky; top:0; }
+table.data-table thead th { padding:7px 10px; color:var(--amber); text-align:left; border-bottom:1px solid var(--border-hard); white-space:nowrap; font-family:var(--display); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; }
+table.data-table tbody td { padding:6px 10px; border-bottom:1px solid rgba(255,255,255,.04); color:#c0d4ee; vertical-align:top; }
+table.data-table tbody tr:hover { background:rgba(232,184,32,.04); }
+table.val-table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:10px; }
+table.val-table thead th { padding:8px 10px; color:var(--amber); text-align:left; border-bottom:1px solid var(--border-hard); font-family:var(--display); font-size:8.5px; letter-spacing:1.5px; text-transform:uppercase; }
+table.val-table tbody td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,.05); color:#c0d4ee; }
+
+/* ── FORMULA / CB ── */
+.formula-box { background:rgba(0,0,0,.35); border:1px solid rgba(232,184,32,.3); padding:14px 16px; font-family:var(--mono); font-size:10.5px; line-height:2.1; margin-bottom:14px; color:#b8d0f0; }
+.f-label { color:var(--muted); font-size:9px; }
+.f-eq    { color:var(--amber); }
+.f-sub   { color:#c0d4ee; }
+.f-num   { color:#7ec8e3; }
+.cb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; }
+.cb-card { border:1px solid rgba(232,184,32,.25); padding:12px; }
+.cb-name { font-family:var(--display); font-size:9px; letter-spacing:1.5px; color:var(--amber); text-transform:uppercase; margin-bottom:6px; }
+.cb-io   { font-family:var(--mono); font-size:9px; color:var(--muted); line-height:1.7; }
+.cb-io strong { color:var(--white); }
+
+/* ── CHARTS ── */
+.chart-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 24px 0; }
+.chart-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:12px 24px 0; }
+.chart-card   { border:1px solid var(--border); padding:14px; background:var(--card-bg); }
+.chart-card.tall { min-height:260px; }
+.chart-title  { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; margin-bottom:10px; }
+
+/* ── SENSITIVITY ── */
+.sens-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:12px 0; }
+.sens-row  { display:flex; flex-direction:column; gap:6px; }
+.sens-row label { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+.sens-inline { display:flex; align-items:center; gap:8px; }
+.sens-inline input[type=range] { flex:1; accent-color:var(--amber); }
+.sens-val { font-family:var(--display); font-size:13px; color:var(--amber); min-width:32px; text-align:right; }
+
+/* ── INSIGHT LIST ── */
+.insight-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+.insight-item { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; font-family:var(--mono); font-size:10px; line-height:1.6; border-left:3px solid; }
+.insight-item.ok     { border-color:var(--rac-low);     background:rgba(46,125,79,.1);    color:#88dfaa; }
+.insight-item.warn   { border-color:var(--amber);       background:rgba(232,184,32,.07);  color:#e0c860; }
+.insight-item.high   { border-color:var(--rac-serious); background:rgba(196,30,46,.1);    color:#f8a0a8; }
+.insight-item.info   { border-color:var(--cobalt-mid);  background:rgba(26,60,143,.15);   color:#90b8e8; }
+.insight-icon { font-size:14px; flex-shrink:0; }
+
+/* ── DETAIL PANEL ── */
+.trend-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; font-family:var(--mono); font-size:9.5px; }
+.trend-label { width:80px; color:var(--muted); }
+.trend-bar-wrap { flex:1; height:14px; background:rgba(255,255,255,.05); position:relative; }
+.trend-bar-init  { position:absolute; left:0; top:0; height:14px; opacity:.4; }
+.trend-bar-resid { position:absolute; left:0; top:0; height:14px; }
+.trend-val { width:60px; text-align:right; color:var(--amber); font-size:9px; }
+.detail-panel { background:rgba(0,0,0,.25); border:1px solid var(--border); padding:16px; margin-top:12px; display:none; }
+.detail-panel.open { display:block; }
+.dp-header { display:flex; align-items:center; gap:12px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.dp-id   { font-family:var(--display); font-size:20px; color:var(--amber); letter-spacing:2px; }
+.dp-title{ font-family:var(--display); font-size:13px; color:var(--white); letter-spacing:1px; text-transform:uppercase; flex:1; }
+.dp-close{ background:transparent; border:1px solid var(--border-hard); color:var(--muted); font-family:var(--mono); font-size:10px; padding:4px 10px; cursor:pointer; }
+.dp-close:hover { color:var(--white); }
+.dp-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-bottom:12px; }
+.dp-field { display:flex; flex-direction:column; gap:3px; }
+.dp-field-label { font-family:var(--mono); font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
+.dp-field-val   { font-family:var(--mono); font-size:10.5px; color:#c0d4ee; }
+.mde-row { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+.mde-chip { font-family:var(--mono); font-size:7.5px; padding:2px 5px; border:1px solid; letter-spacing:.3px; }
+.mde-present { border-color:var(--rac-low); color:#88dfaa; background:rgba(46,125,79,.12); }
+.mde-missing { border-color:var(--rac-serious); color:#f8a0a8; background:rgba(196,30,46,.12); }
+
+/* ── LOG ── */
+.log-panel { background:rgba(0,0,0,.35); padding:10px; font-family:var(--mono); font-size:9px; max-height:180px; overflow-y:auto; line-height:1.8; }
+.log-ts   { color:var(--muted); margin-right:8px; }
+.log-ok   { color:#6ecf90; }
+.log-err  { color:#f08888; }
+.log-warn { color:var(--amber); }
+
+/* ── FOOTER ── */
+#app-footer { background:var(--black); border-top:2px solid var(--border); padding:14px 24px; font-family:var(--mono); font-size:8.5px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; letter-spacing:.8px; text-transform:uppercase; margin-top:48px; }
+.footer-logo { font-family:var(--display); font-size:12px; letter-spacing:3px; color:var(--amber); }
+
+@media print { #topbar,#demo-banner { position:static; } body { background:#fff; color:#000; } }
+</style>
+</head>
+<body>
+
+<!-- DEMO BANNER -->
+<div id="demo-banner">
+  ◆ INTERACTIVE DEMO — Pre-loaded with SEDAC Reference UAV dataset &nbsp;|&nbsp; Upload &amp; export features available in the full tool &nbsp;|&nbsp;
+  <a href="https://sedacsystems.com/contact" target="_blank">Contact SEDAC to license the full tool suite →</a>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <svg viewBox="0 0 60 60" width="36" height="36" xmlns="http://www.w3.org/2000/svg" aria-label="SEDAC hex-signal mark">
+    <polygon points="30,3 54,16.5 54,43.5 30,57 6,43.5 6,16.5" fill="none" stroke="#E8B820" stroke-width="2.5"/>
+    <circle cx="14" cy="30" r="3.5" fill="#E8B820"/>
+    <line x1="18" y1="30" x2="36" y2="30" stroke="#E8B820" stroke-width="3" stroke-linecap="square"/>
+    <line x1="28" y1="20" x2="44" y2="30" stroke="#E8B820" stroke-width="3" stroke-linecap="square"/>
+    <line x1="28" y1="40" x2="44" y2="30" stroke="#E8B820" stroke-width="3" stroke-linecap="square"/>
+  </svg>
+  <div>
+    <div class="tb-title">SEDAC · MIL-STD 882E</div>
+    <div class="tb-sub">Science · Engineering · Design · Art · Craft</div>
+  </div>
+  <div class="tb-divider"></div>
+  <span class="task-badge">Task 106 · HTS</span>
+  <span class="demo-badge">Demo</span>
+  <div class="tb-spacer"></div>
+  <span id="top-class">UNMARKED</span>
+  <button class="btn-export-demo" title="Export available in the full tool">◆ Export Report</button>
+</div>
+
+<div id="app">
+
+<!-- INTRO -->
+<div style="padding:14px 24px 0">
+<div class="alert-info">
+  <span class="alert-icon">§</span>
+  <div>
+    <strong>Task 106 — Hazard Tracking System (HTS) · Interactive Demo.</strong>
+    Per MIL-STD 882E §101.2.6, the HTS is a closed-loop database tracking all identified hazards across the system life-cycle.
+    This demo is pre-loaded with the <strong>SEDAC Reference UAV System</strong> dataset (12 hazards, 13 controls).
+    All panels, filters, sorting, drilldowns, sliders, and charts are fully interactive.
+    Upload your own data and generate PDF reports with the full licensed tool.
+  </div>
+</div>
+</div>
+
+<!-- §01 DEMO DATA INPUT -->
+<div class="section-header">
+  <span class="sec-num">01</span>
+  <h2>Data Input</h2>
+  <span class="sec-desc">Pre-loaded demo dataset · SEDAC Reference UAV System · upload available in full tool</span>
+</div>
+<div class="demo-input-card">
+  <div style="font-family:var(--display);font-size:11px;letter-spacing:2px;color:var(--amber);text-transform:uppercase;margin-bottom:8px">SEDAC Reference UAV System — Demo Dataset</div>
+  <div class="demo-dataset-info" id="demo-stats"></div>
+  <div class="demo-grid">
+    <div class="demo-locked-slot">
+      <div class="slot-title">HAZARDS.CSV</div>
+      <div class="slot-status" id="demo-haz-status">— loading…</div>
+    </div>
+    <div class="demo-locked-slot">
+      <div class="slot-title">CONTROLS.CSV</div>
+      <div class="slot-status" id="demo-ctl-status">— loading…</div>
+    </div>
+    <div class="demo-locked-slot">
+      <div class="slot-title">PROJECT.CSV</div>
+      <div class="slot-status" id="demo-prj-status">— loading…</div>
+    </div>
+  </div>
+  <div class="demo-action-row">
+    <button class="btn-demo-run" id="btn-demo-run" onclick="runAnalysis()">⚙ Run HTS Analysis on Demo Data</button>
+    <button class="demo-locked-btn" data-tip="Upload your own CSVs in the full tool">🔒 Upload hazards.csv</button>
+    <button class="demo-locked-btn" data-tip="Upload your own CSVs in the full tool">🔒 Upload controls.csv</button>
+    <button class="demo-locked-btn" data-tip="Download CSV templates in the full tool">🔒 Download templates</button>
+    <span style="flex:1"></span>
+    <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">All analysis runs client-side in your browser &nbsp;·&nbsp; No data is transmitted</span>
+  </div>
+</div>
+
+<!-- §02 PARSE & VALIDATE -->
+<div id="val-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">02</span>
+    <h2>Parse &amp; Validate</h2>
+    <span class="sec-desc">Schema check · MIL-STD 882E §101.2.6 MDE completeness · FK integrity</span>
+  </div>
+  <div class="card">
+    <div class="meta-grid" id="meta-grid"></div>
+    <div id="val-alerts"></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="preview" onclick="switchTab(this)">Data Preview</button>
+      <button class="tab-btn" data-tab="mde"     onclick="switchTab(this)">MDE Checklist</button>
+      <button class="tab-btn" data-tab="schema"  onclick="switchTab(this)">Schema Check</button>
+      <button class="tab-btn" data-tab="log"     onclick="switchTab(this)">Parse Log</button>
+    </div>
+    <div class="tab-pane active" id="tab-preview">
+      <div class="tabs" style="border-bottom:1px solid var(--border)">
+        <button class="tab-btn active" data-subtab="preview-haz" onclick="switchSubTab(this)" style="font-size:9px">Hazards</button>
+        <button class="tab-btn" data-subtab="preview-ctl" onclick="switchSubTab(this)" style="font-size:9px">Controls</button>
+        <button class="tab-btn" data-subtab="preview-prj" onclick="switchSubTab(this)" style="font-size:9px">Project</button>
+      </div>
+      <div class="tab-pane active" id="preview-haz"><div class="data-table-wrap"><table class="data-table" id="tbl-preview-haz"></table></div></div>
+      <div class="tab-pane" id="preview-ctl"><div class="data-table-wrap"><table class="data-table" id="tbl-preview-ctl"></table></div></div>
+      <div class="tab-pane" id="preview-prj"><div class="data-table-wrap"><table class="data-table" id="tbl-preview-prj"></table></div></div>
+    </div>
+    <div class="tab-pane" id="tab-mde">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin:8px 0 12px">MIL-STD 882E §101.2.6 requires all HTS records to contain these minimum data elements. Percentages show what fraction of records have each field populated.</div>
+      <div class="field-matrix" id="mde-field-matrix"></div>
+    </div>
+    <div class="tab-pane" id="tab-schema">
+      <table class="val-table"><thead><tr><th>File</th><th>Column</th><th>MDE Required</th><th>Status</th></tr></thead><tbody id="schema-body"></tbody></table>
+    </div>
+    <div class="tab-pane" id="tab-log">
+      <div class="log-panel" id="log-panel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- §03 PARAMETRIC MODEL -->
+<div id="model-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">03</span>
+    <h2>Parametric Model</h2>
+    <span class="sec-desc">SysML ConstraintBlocks · HTS analytics pipeline · completeness scoring</span>
+  </div>
+  <div class="card flag-amber hatch-overlay">
+    <div class="formula-box">
+<span class="f-label">// ConstraintBlock: HTSCompleteness  [per MIL-STD 882E §101.2.6 MDEs]</span><br>
+<span class="f-eq">mdeScore[field] =</span> <span class="f-num">|{h : h.field ≠ ∅}| / |H|</span><br>
+<span class="f-eq">overallCompleteness =</span> <span class="f-num">Σ<sub>f∈MDE</sub> mdeScore[f] / |MDE|</span><br>
+<span class="f-eq">criticalMDEScore =</span> <span class="f-num">mean(mdeScore[f] : f ∈ {hazard_id, causal_factor, severity_initial, risk_acceptance, verification_method})</span><br><br>
+<span class="f-label">// ConstraintBlock: RACTrendAnalysis</span><br>
+<span class="f-eq">racDistInit[r] =</span> <span class="f-num">|{h : rac(h.sev_init, h.prob_init) = r}|</span><br>
+<span class="f-eq">racDistResid[r] =</span> <span class="f-num">|{h : rac(h.sev_resid, h.prob_resid) = r}|</span><br>
+<span class="f-eq">riskReductionIndex =</span> <span class="f-num">(Σ rank(rac_init) − Σ rank(rac_resid)) / Σ rank(rac_init)</span><br><br>
+<span class="f-label">// ConstraintBlock: ClosureVelocity</span><br>
+<span class="f-eq">closureRate =</span> <span class="f-num">|{h : h.status ∈ {closed, accepted}}| / |H|</span><br>
+<span class="f-eq">openHighSerious =</span> <span class="f-sub">|{h : racRank(h.rac_initial) ≥ 3 ∧ h.status = open}|</span><br><br>
+<span class="f-label">// ConstraintBlock: AcceptanceAudit</span><br>
+<span class="f-eq">unacceptedHigh =</span> <span class="f-sub">{h : racRank(h.rac_residual) ≥ 2 ∧ risk_acceptance = ∅}</span><br><br>
+<span class="f-label">// ConstraintBlock: ControlEffectiveness</span><br>
+<span class="f-eq">ctlCoverage[h] =</span> <span class="f-sub">|{c ∈ C : h.hazard_id ∈ c.hazard_ids}|</span><br>
+<span class="f-eq">unverifiedHighRisk =</span> <span class="f-sub">|{c : c.verif_status ≠ complete ∧ ∃ h ∈ c.hazards : racRank(h) ≥ 3}|</span>
+    </div>
+    <div class="cb-grid">
+      <div class="cb-card"><div class="cb-name">HTSCompleteness</div><div class="cb-io"><strong>in:</strong> Hazard[*]._raw fields<br><strong>out:</strong> mdeScore[field]<br><strong>out:</strong> overallCompleteness<br><strong>out:</strong> criticalMDEScore</div></div>
+      <div class="cb-card"><div class="cb-name">RACTrendAnalysis</div><div class="cb-io"><strong>in:</strong> Hazard[*].rac values<br><strong>out:</strong> racDistInit[r]<br><strong>out:</strong> racDistResid[r]<br><strong>out:</strong> riskReductionIndex</div></div>
+      <div class="cb-card"><div class="cb-name">ClosureVelocity</div><div class="cb-io"><strong>in:</strong> Hazard[*].status<br><strong>out:</strong> closureRate<br><strong>out:</strong> openHighSerious<br><strong>out:</strong> openCount</div></div>
+      <div class="cb-card"><div class="cb-name">AcceptanceAudit</div><div class="cb-io"><strong>in:</strong> Hazard[*].acceptance<br><strong>out:</strong> unacceptedHigh<br><strong>out:</strong> authorityGap[h]<br><strong>out:</strong> acceptanceRegister</div></div>
+      <div class="cb-card"><div class="cb-name">ControlEffectiveness</div><div class="cb-io"><strong>in:</strong> Control[*], Hazard[*]<br><strong>out:</strong> ctlCoverage[h]<br><strong>out:</strong> plannedVsVerified<br><strong>out:</strong> unverifiedHighRisk</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- §04 HTS COMPLETENESS SCORING -->
+<div id="completeness-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">04</span>
+    <h2>HTS Completeness Scoring</h2>
+    <span class="sec-desc">MDE coverage · §101.2.6 compliance · field-level gap analysis</span>
+  </div>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:16px;margin:12px 24px 0;align-items:start">
+    <div class="card" style="margin:0;min-width:320px">
+      <div class="card-title">Overall HTS Completeness</div>
+      <div class="gauge-wrap">
+        <div class="gauge-circle">
+          <svg viewBox="0 0 120 120"><circle class="g-track" cx="60" cy="60" r="50"/><circle class="g-fill" id="gauge-fill" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"/></svg>
+          <div class="gauge-label"><div class="gauge-pct" id="gauge-pct">—</div><div class="gauge-sublabel">complete</div></div>
+        </div>
+        <div class="completeness-fields" id="completeness-fields"></div>
+      </div>
+    </div>
+    <div class="card" style="margin:0">
+      <div class="card-title">MDE Field Completeness — all §101.2.6 required fields</div>
+      <div class="field-matrix" id="mde-full-matrix"></div>
+    </div>
+  </div>
+  <div class="result-grid" id="completeness-kpi-grid"></div>
+</div>
+
+<!-- §05 MASTER HTS REGISTER -->
+<div id="register-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">05</span>
+    <h2>Master HTS Register</h2>
+    <span class="sec-desc">All hazards · sortable · filterable · click any row for full detail</span>
+  </div>
+  <div class="card" style="padding-bottom:0">
+    <div class="hts-toolbar">
+      <select class="hts-filter" id="filter-rac"    onchange="renderHTSTable()"><option value="">All RAC</option><option>High</option><option>Serious</option><option>Medium</option><option>Low</option></select>
+      <select class="hts-filter" id="filter-status" onchange="renderHTSTable()"><option value="">All Status</option><option>open</option><option>mitigated</option><option>closed</option><option>accepted</option></select>
+      <select class="hts-filter" id="filter-system" onchange="renderHTSTable()"><option value="">All Systems</option></select>
+      <select class="hts-filter" id="filter-phase"  onchange="renderHTSTable()"><option value="">All Phases</option></select>
+      <select class="hts-filter" id="filter-source" onchange="renderHTSTable()"><option value="">All Source Tasks</option></select>
+      <input  class="hts-search" id="hts-search" type="text" placeholder="Search hazard ID, title, system…" oninput="renderHTSTable()">
+      <button class="btn btn-ghost" onclick="clearHTSFilters()">✕ Clear filters</button>
+      <span class="hts-count" id="hts-count"></span>
+    </div>
+    <div class="hts-table-wrap">
+      <table class="hts-table" id="hts-table">
+        <thead><tr>
+          <th data-col="hazard_id"       onclick="sortHTS(this)">Hazard ID</th>
+          <th data-col="title"            onclick="sortHTS(this)">Title</th>
+          <th data-col="system"           onclick="sortHTS(this)">System</th>
+          <th data-col="subsystem"        onclick="sortHTS(this)">Subsystem</th>
+          <th data-col="mode"             onclick="sortHTS(this)">Mode / Phase</th>
+          <th data-col="sev_init"         onclick="sortHTS(this)">Sev I</th>
+          <th data-col="prob_init"        onclick="sortHTS(this)">Prob I</th>
+          <th data-col="rac_initial"      onclick="sortHTS(this)">RAC Init</th>
+          <th data-col="rac_event"        onclick="sortHTS(this)">RAC Event</th>
+          <th data-col="rac_target"       onclick="sortHTS(this)">RAC Target</th>
+          <th data-col="rac_residual"     onclick="sortHTS(this)">RAC Resid</th>
+          <th data-col="delta"            onclick="sortHTS(this)">Δ Rank</th>
+          <th data-col="status"           onclick="sortHTS(this)">Status</th>
+          <th data-col="acting_person"    onclick="sortHTS(this)">Action Owner</th>
+          <th data-col="source_task"      onclick="sortHTS(this)">Source</th>
+          <th data-col="verification_method" onclick="sortHTS(this)">Verif. Method</th>
+          <th data-col="mde_score"        onclick="sortHTS(this)">MDE %</th>
+        </tr></thead>
+        <tbody id="hts-tbody"></tbody>
+      </table>
+    </div>
+    <div style="padding:8px 0 4px">
+      <div class="detail-panel" id="detail-panel">
+        <div class="dp-header">
+          <div class="dp-id" id="dp-id"></div>
+          <div class="dp-title" id="dp-title"></div>
+          <button class="dp-close" onclick="closeDetail()">✕ Close</button>
+        </div>
+        <div id="dp-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- §06 RAC ANALYTICS -->
+<div id="analytics-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">06</span>
+    <h2>RAC Analytics &amp; Risk Profile</h2>
+    <span class="sec-desc">Initial → event → target → residual · subsystem risk · phase matrix</span>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card tall">
+      <div class="chart-title">RAC distribution — initial / event / target / residual</div>
+      <canvas id="chart-rac-dist"></canvas>
+    </div>
+    <div class="chart-card tall">
+      <div class="chart-title">Risk reduction index — Δ rank per hazard (initial → residual)</div>
+      <canvas id="chart-delta"></canvas>
+    </div>
+  </div>
+  <div class="chart-grid-3">
+    <div class="chart-card tall">
+      <div class="chart-title">Subsystem cumulative initial RAC rank</div>
+      <canvas id="chart-subsys"></canvas>
+    </div>
+    <div class="chart-card tall">
+      <div class="chart-title">Hazard count by phase &amp; lifecycle mode</div>
+      <canvas id="chart-phase"></canvas>
+    </div>
+    <div class="chart-card tall">
+      <div class="chart-title">Source task distribution</div>
+      <canvas id="chart-source"></canvas>
+    </div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">HTS status breakdown</div>
+      <canvas id="chart-status"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Control verification status</div>
+      <canvas id="chart-ctl-status"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- §07 GAP ANALYSIS -->
+<div id="gap-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">07</span>
+    <h2>Gap Analysis</h2>
+    <span class="sec-desc">Open high-risk items · missing risk acceptance · unverified controls · MDE gaps</span>
+  </div>
+  <div class="card flag-red">
+    <div class="card-title">Open High/Serious RAC hazards — immediate action required</div>
+    <div class="data-table-wrap"><table class="data-table" id="tbl-open-high"></table></div>
+  </div>
+  <div class="card flag-red">
+    <div class="card-title">Residual High/Serious RAC — formal risk acceptance required (DAA/PM)</div>
+    <div class="data-table-wrap"><table class="data-table" id="tbl-resid-high"></table></div>
+  </div>
+  <div class="card flag-amber">
+    <div class="card-title">Missing risk acceptance documentation — acceptance field unpopulated</div>
+    <div class="data-table-wrap"><table class="data-table" id="tbl-no-acceptance"></table></div>
+  </div>
+  <div class="card flag-amber">
+    <div class="card-title">Missing verification method — hazards with no verification approach defined</div>
+    <div class="data-table-wrap"><table class="data-table" id="tbl-no-verif"></table></div>
+  </div>
+  <div class="card flag-amber">
+    <div class="card-title">Unverified controls on High/Serious hazards</div>
+    <div class="data-table-wrap"><table class="data-table" id="tbl-unverified-ctl"></table></div>
+  </div>
+</div>
+
+<!-- §08 SENSITIVITY -->
+<div id="sens-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">08</span>
+    <h2>Sensitivity Analysis</h2>
+    <span class="sec-desc">Program-wide RAC sweep · milestone risk posture simulation</span>
+  </div>
+  <div class="card">
+    <div class="alert-info" style="margin-bottom:12px">
+      <span class="alert-icon">§</span>
+      <span>Simulate additional severity/probability reductions across the HTS. Use to model risk posture at upcoming milestones (PDR, CDR) under different control effectiveness assumptions.</span>
+    </div>
+    <div class="sens-grid">
+      <div class="sens-row">
+        <label>Severity reduction (levels from residual)</label>
+        <div class="sens-inline">
+          <input type="range" id="sens-sev" min="0" max="3" step="1" value="0" oninput="applySensitivity()">
+          <span class="sens-val" id="sens-sev-val">0</span>
+        </div>
+      </div>
+      <div class="sens-row">
+        <label>Probability reduction (levels from residual)</label>
+        <div class="sens-inline">
+          <input type="range" id="sens-prob" min="0" max="4" step="1" value="0" oninput="applySensitivity()">
+          <span class="sens-val" id="sens-prob-val">0</span>
+        </div>
+      </div>
+      <div class="sens-row">
+        <label>Scope filter</label>
+        <select class="hts-filter" id="sens-scope" onchange="applySensitivity()" style="margin-top:6px">
+          <option value="all">All hazards</option>
+          <option value="open">Open only</option>
+          <option value="highserious">High/Serious RAC only</option>
+        </select>
+      </div>
+    </div>
+    <div id="sens-summary-cards" style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0"></div>
+    <div class="data-table-wrap"><table class="data-table" id="tbl-sens"></table></div>
+  </div>
+</div>
+
+<!-- §09 AUTOMATED INSIGHTS -->
+<div id="insights-panel" style="display:none">
+  <div class="section-header">
+    <span class="sec-num">09</span>
+    <h2>Automated Insights</h2>
+    <span class="sec-desc">HTS health · program safety posture · rule-based findings</span>
+  </div>
+  <div class="card">
+    <ul class="insight-list" id="insight-list"></ul>
+  </div>
+</div>
+
+<!-- DEMO CTA FOOTER -->
+<div id="demo-cta" style="display:none;margin:32px 24px 0;border:2px solid var(--amber);padding:22px 24px;background:rgba(232,184,32,.06)">
+  <div style="font-family:var(--display);font-size:13px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:8px">Ready to run your own data?</div>
+  <div style="font-family:var(--mono);font-size:10.5px;color:#c0d4ee;line-height:1.8;margin-bottom:14px">
+    The full Task 106 HTS tool supports upload of your own <code style="background:rgba(255,255,255,.1);padding:1px 5px">hazards.csv</code>, <code style="background:rgba(255,255,255,.1);padding:1px 5px">controls.csv</code>, and <code style="background:rgba(255,255,255,.1);padding:1px 5px">project.csv</code> files, generates
+    PDF/JSON/CSV deliverables, and is part of the SEDAC MIL-STD 882E Task Analysis Tool Suite covering all 24 §5 tasks.
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <a href="https://sedacsystems.com/contact" target="_blank" style="font-family:var(--display);font-size:10px;letter-spacing:2px;background:var(--amber);color:var(--black);padding:8px 20px;text-decoration:none;text-transform:uppercase">Contact SEDAC →</a>
+    <a href="https://sedacsystems.com/resources" target="_blank" style="font-family:var(--mono);font-size:9.5px;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.2)">View all demo tools</a>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<div id="app-footer">
+  <div><span class="footer-logo">SEDAC LLC</span> &nbsp;&nbsp; Science | Engineering | Design | Art | Craft</div>
+  <div>CAGE: 18S33 · Huntsville, Alabama · WOSB / SBIR Eligible</div>
+  <div>MIL-STD 882E · Task 106 · HTS · Interactive Demo · SEDAC Brand v3</div>
+</div>
+
+<script>
+/* =============================================================================
+   TASK 106 · HAZARD TRACKING SYSTEM (HTS) — INTERACTIVE DEMO
+   Pre-loaded with SEDAC Reference UAV System dataset.
+   All analysis logic is identical to the full tool.
+   Upload / export / PDF generation are locked — available in the full tool.
+   ============================================================================= */
+
+/* ── RAC constants ── */
+const RAC={I:{A:"High",B:"High",C:"Serious",D:"Medium",E:"Low"},II:{A:"High",B:"Serious",C:"Medium",D:"Low",E:"Low"},III:{A:"Serious",B:"Medium",C:"Medium",D:"Low",E:"Low"},IV:{A:"Medium",B:"Low",C:"Low",D:"Low",E:"Low"}};
+const RAC_RANK={Low:1,Medium:2,Serious:3,High:4};
+const RAC_COLOR={High:"#8E1420",Serious:"#C41E2E",Medium:"#C89000",Low:"#2E7D4F"};
+const SEV_ORDER=["I","II","III","IV"];
+const PROB_ORDER=["A","B","C","D","E"];
+const SEV_NAME={I:"Catastrophic",II:"Critical",III:"Marginal",IV:"Negligible"};
+const PROB_NAME={A:"Frequent",B:"Probable",C:"Occasional",D:"Remote",E:"Improbable"};
+function racL(s,p){return(RAC[s]||{})[p]||"Low";}
+function invRank(r){return{4:"High",3:"Serious",2:"Medium",1:"Low",0:"—"}[r]||"—";}
+function decrSev(s,n){let i=SEV_ORDER.indexOf(s);return SEV_ORDER[Math.min(3,i+n)];}
+function decrProb(p,n){let i=PROB_ORDER.indexOf(p);return PROB_ORDER[Math.min(4,i+n)];}
+const isEmpty=v=>!v||String(v).trim()===""||v==="—";
+
+/* ── MDE fields ── */
+const MDE_FIELDS=[
+  {key:"hazard_id",        label:"Hazard ID",            critical:true},
+  {key:"system",           label:"System",               critical:true},
+  {key:"subsystem",        label:"Subsystem",            critical:false},
+  {key:"applicability",    label:"Applicability",        critical:false},
+  {key:"mode",             label:"Mode",                 critical:false},
+  {key:"causal_factor",    label:"Causal Factor",        critical:true},
+  {key:"effects",          label:"Effects",              critical:true},
+  {key:"mishap",           label:"Mishap",               critical:false},
+  {key:"severity_initial", label:"Severity (Initial)",   critical:true},
+  {key:"probability_initial",label:"Probability (Initial)",critical:true},
+  {key:"severity_residual",label:"Severity (Residual)",  critical:true},
+  {key:"probability_residual",label:"Probability (Resid)",critical:true},
+  {key:"mitigation_measures",label:"Mitigation Measures",critical:true},
+  {key:"verification_method",label:"Verification Method",critical:true},
+  {key:"acting_person",    label:"Acting Person",        critical:true},
+  {key:"risk_acceptance",  label:"Risk Acceptance",      critical:true},
+  {key:"risk_acceptance_authority",label:"Acceptance Authority",critical:false},
+  {key:"status",           label:"Status",               critical:true},
+  {key:"source_task",      label:"Source Task",          critical:false},
+  {key:"date_identified",  label:"Date Identified",      critical:false},
+  {key:"date_updated",     label:"Date Updated",         critical:false},
+];
+
+/* ── State ── */
+const MODEL={hazRows:null,ctlRows:null,prjRows:null,hazards:[],controls:[],project:{},analysis:null,charts:{},log:[]};
+let htsSort={col:"rac_rank_init",dir:"desc"};
+
+/* ── CSV parser ── */
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,"");
+  const lines=text.replace(/\r\n/g,"\n").split("\n").filter(l=>l.trim());
+  if(!lines.length)return{headers:[],rows:[]};
+  const headers=lines[0].split(",").map(h=>h.trim());
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const vals=lines[i].split(",").map(v=>v.trim());
+    if(vals.length!==headers.length)continue;
+    const r={};headers.forEach((h,j)=>r[h]=vals[j]);rows.push(r);
+  }
+  return{headers,rows};
+}
+function splitList(s){if(!s)return[];return String(s).replace(/;/g,"|").split("|").map(x=>x.trim()).filter(x=>x);}
+
+/* ── Logger ── */
+function log(msg,kind=""){
+  const ts=new Date().toLocaleTimeString("en-US",{hour12:false});
+  MODEL.log.push({ts,msg,kind});
+  const el=document.getElementById("log-panel");
+  if(el){const d=document.createElement("div");d.innerHTML=`<span class="log-ts">[${ts}]</span> <span${kind?` class="log-${kind}"`:""}>${msg}</span>`;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+}
+
+/* ── Tabs ── */
+function switchTab(btn){const tab=btn.dataset.tab;btn.parentElement.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");btn.parentElement.parentElement.querySelectorAll(":scope > .tab-pane").forEach(p=>p.classList.remove("active"));document.getElementById("tab-"+tab).classList.add("active");}
+function switchSubTab(btn){const tab=btn.dataset.subtab;btn.parentElement.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");btn.parentElement.parentElement.querySelectorAll(":scope > .tab-pane").forEach(p=>p.classList.remove("active"));document.getElementById(tab).classList.add("active");}
+
+/* ── Validation ── */
+function validate(){
+  const issues=[],schemaChecks=[];
+  const CHECK=(file,col,mde)=>{const ok=(MODEL[file+"Rows"]?.headers||[]).includes(col);schemaChecks.push({file,col,mde,ok});if(mde&&!ok)issues.push({sev:"error",file,message:`Missing MDE column: ${col}`});};
+  ["hazard_id","title"].forEach(c=>CHECK("haz",c,true));
+  MDE_FIELDS.filter(f=>f.critical).forEach(f=>CHECK("haz",f.key,f.critical));
+  const sevD=new Set(["I","II","III","IV"]),probD=new Set(["A","B","C","D","E"]);
+  (MODEL.hazRows?.rows||[]).forEach((r,i)=>{
+    ["severity_initial","severity_residual","severity_event","severity_target"].forEach(c=>{const v=(r[c]||"").toUpperCase();if(v&&!sevD.has(v))issues.push({sev:"warn",file:"haz",message:`Row ${i+2} ${c}="${v}" — expected I–IV`});});
+    ["probability_initial","probability_residual","probability_event","probability_target"].forEach(c=>{const v=(r[c]||"").toUpperCase();if(v&&!probD.has(v))issues.push({sev:"warn",file:"haz",message:`Row ${i+2} ${c}="${v}" — expected A–E`});});
+  });
+  return{issues,schemaChecks};
+}
+
+/* =============================================================================
+   DEMO DATA — SEDAC Reference UAV System
+   ============================================================================= */
+const DEMO={
+hazardsCSV:`hazard_id,title,description,system,subsystem,applicability,mode,causal_factor,effects,mishap,severity_initial,probability_initial,severity_event,probability_event,severity_target,probability_target,severity_residual,probability_residual,mitigation_measures,verification_method,acting_person,risk_acceptance,risk_acceptance_authority,risk_acceptance_date,status,source_task,date_identified,date_updated,notes
+HAZ-001,Loss of Navigation,Complete GPS failure during critical flight phase,Avionics,Navigation,All flight ops,operation,GPS antenna failure or jamming,Loss of situational awareness,CFIT or aircraft loss,II,B,II,C,III,D,III,D,Redundant GPS with failover; pilot alert,Test|Analysis,C. Bartlett,Accepted — residual Medium with dual redundancy,Program Manager,2026-02-14,mitigated,202,2026-01-10,2026-03-01,REQ-001
+HAZ-002,Navigation Drift,Unbounded position error from single-unit fault,Avionics,Navigation,All flight ops,operation,GPS unit signal degradation,Degraded position accuracy,Near mid-air collision,III,C,III,C,III,D,III,D,Single-unit fault detection and alert,Analysis|Inspection,C. Bartlett,Accepted — residual Low RAC,Program Manager,2026-02-14,mitigated,202,2026-01-10,2026-03-01,
+HAZ-003,Propulsion Overtemp,Thermal runaway in motor controller,Propulsion,Motor Controller,All flight ops,operation,Cooling failure or over-current,Motor damage; possible fire,Loss of aircraft; personnel injury,I,C,I,D,II,D,II,D,Over-temp sensor; safe-state entry 500ms,Test|Analysis,A. Ryan,Accepted — residual Critical; monitoring required at CDR,Program Manager,2026-02-28,mitigated,202,2026-01-10,2026-03-15,REQ-002
+HAZ-004,Battery Fire,Thermal event in lithium battery bus,Power,Battery,All powered ops,operation,Cell defect; overcharge; external short,Thermal runaway; fire; toxic gas,Personnel burns; aircraft loss,I,C,I,C,II,D,II,D,BMS cell-level monitoring; automatic isolation,Test|Analysis|Demonstration,C. Bartlett,Accepted — residual Critical pending flight-test,DAA,2026-03-10,mitigated,202,2026-01-12,2026-03-20,REQ-004 REQ-016
+HAZ-005,Battery Short Circuit,Internal short in battery bus,Power,Battery,All powered ops,operation,Cell short; wiring damage,Rapid power loss; possible thermal event,Aircraft power loss in flight,II,C,II,C,III,D,III,E,Battery fuse; isolation relay; BMS monitoring,Test|Analysis,C. Bartlett,Accepted — residual Marginal RAC,Program Manager,2026-02-28,mitigated,202,2026-01-12,2026-03-01,
+HAZ-007,Airframe Structural Failure,Exceedance of structural load limits,Airframe,Primary Structure,All flight ops,operation,Over-load; gust; fatigue crack,Structural failure in flight,Aircraft loss; ground impact injury,I,D,I,D,II,E,II,E,6g ultimate load; flight envelope limiter,Analysis|Test,C. Bartlett,Accepted — residual Critical; structural test required,DAA,2026-03-10,mitigated,202,2026-01-15,2026-03-20,REQ-007
+HAZ-010,Rotating Machinery Injury,Personnel contact with rotor during test,Mechanical,Rotor Assembly,Ground test,test,Spin-up without clearance; guard failure,Laceration or amputation,Serious or fatal injury,II,C,II,D,III,E,III,E,Exclusion zone; WoW interlock; guard; safety brief,Inspection|Test,C. Bartlett,Accepted — residual Marginal with procedural controls,Program Manager,2026-02-14,mitigated,202,2026-01-20,2026-02-20,REQ-010
+HAZ-011,Propellant Tank Overpressure,Pressure excursion above rated MEOP,Propulsion,Propellant System,Fueling and flight,test,Fueling overpressure; relief valve failure,Tank rupture; propellant release; explosion,Personnel injury; aircraft destruction,I,D,I,D,II,E,II,E,Dual redundant relief valves; pressure gauge abort,Test|Inspection|Analysis,C. Bartlett,Accepted — residual Critical; pressure test required,DAA,2026-03-10,mitigated,202,2026-01-20,2026-03-20,REQ-011
+HAZ-014,Unauthorized Ejection,Ejection activation during maintenance,Escape System,Ejection Seat,Ground maintenance,maintenance,Safety pin not installed; inadvertent handle contact,Ejection seat activation; fatality,Serious or fatal injury,I,D,I,E,I,E,I,E,WoW interlock; safety pin; warning covers,Inspection|Test,A. Ryan,Accepted — residual Catastrophic; formal DAA letter required,DAA,2026-03-15,open,202,2026-01-25,2026-03-15,Requires formal DAA risk acceptance letter — OPEN
+HAZ-015,Cold-Temp Battery Degradation,Battery capacity loss below -20 deg C,Power,Battery,Cold weather ops,operation,Ambient below operating limit,Reduced endurance; unexpected power loss,Aircraft loss due to power exhaustion,III,C,III,C,IV,D,IV,D,Thermal wrap; pre-heat procedure; endurance margin,,C. Bartlett,Not yet accepted — pending thermal analysis,,open,202,2026-01-25,2026-04-01,No verification method assigned — OPEN gap
+HAZ-016,EMI-Induced Avionics Reset,EMI causes avionics reset during flight,Avionics,Navigation,All flight ops,operation,High-power RF; inadequate shielding,Loss of nav and flight control data,CFIT; aircraft loss,II,B,II,C,III,D,III,D,MIL-STD-461 qualification; shielded harness; auto-restart,Test|Analysis,A. Ryan,Not yet accepted — pending EMI qualification,Program Manager,,open,203,2026-02-05,2026-04-10,EMI qual test planned Q3 FY26
+HAZ-019,Software Watchdog Timeout,Watchdog failure causes avionics processor hang,Flight Software,Flight Management,All flight ops,operation,Software deadlock; memory corruption,Total avionics failure; autopilot dropout,Aircraft loss,I,C,I,C,II,D,II,D,Hardware watchdog; health monitor; graceful degradation,Test|Analysis,A. Ryan,Accepted — residual Critical pending software verification,DAA,2026-03-20,mitigated,208,2026-02-18,2026-04-05,LOR Task 2 assigned`,
+controlsCSV:`control_id,hazard_ids,type,description,verification_method,verification_status,responsible_party,target_rac,implemented_date,notes
+CTL-101,HAZ-001,Design,Dual redundant GPS with automatic failover,Test,complete,A. Ryan,Medium,2026-02-20,Verified per STP-101
+CTL-102,HAZ-001|HAZ-002,Design,GPS health monitor with pilot alert,Test|Demonstration,complete,A. Ryan,Medium,2026-02-20,
+CTL-103,HAZ-003,Design,Over-temperature sensor and safe-state entry,Test,complete,C. Bartlett,Medium,2026-03-01,
+CTL-104,HAZ-004,Design,BMS cell-level monitoring and isolation relay,Test,complete,C. Bartlett,Medium,2026-03-10,BMS v2.1
+CTL-105,HAZ-004|HAZ-005,Design,Primary battery bus fuse and isolation relay,Test,complete,C. Bartlett,Medium,2026-03-10,
+CTL-107,HAZ-007,Analysis,6g ultimate load analysis; flight envelope limiter,Analysis,complete,C. Bartlett,Medium,2026-03-15,SA-2026-003
+CTL-110,HAZ-010,Procedural,Exclusion zone; WoW interlock; guard,Inspection|Demonstration,complete,C. Bartlett,Low,2026-02-10,PROC-GSE-004
+CTL-111,HAZ-011,Design,Relief valve 1 at 110% MEOP,Test,complete,C. Bartlett,Medium,2026-03-15,
+CTL-112,HAZ-011,Design,Relief valve 2 at 115% MEOP,Test,complete,C. Bartlett,Medium,2026-03-15,
+CTL-116,HAZ-016,Design,MIL-STD-461 hardening; auto-restart logic,Test,planned,A. Ryan,Medium,,EMI qual Q3 FY26
+CTL-117,HAZ-014,Design|Procedural,WoW interlock; safety pin SOP,Inspection|Test,complete,A. Ryan,Catastrophic,2026-03-20,PROC-MNT-007
+CTL-118,HAZ-015,Design,Thermal wrap; cold-weather pre-heat procedure,Analysis,planned,C. Bartlett,Low,,Thermal analysis in work
+CTL-122,HAZ-019,Design,Hardware watchdog; health monitor; graceful degradation,Test|Analysis,in-progress,A. Ryan,Medium,,CDR target`,
+projectCSV:`program_id,system_name,contractor,contract_no,classification,preparer,approver,date,program_phase,milestone_next,milestone_date,sspp_rev,hts_baseline_date
+DEMO-001,SEDAC Reference UAV System,SEDAC LLC,W9123F-26-C-0001,UNMARKED,C. Bartlett,A. Ryan,2026-04-30,EMD,CDR,2026-06-15,B,2026-01-10`,
+};
+
+/* ── Load demo data on page load ── */
+function initDemo(){
+  MODEL.hazRows=parseCSV(DEMO.hazardsCSV);
+  MODEL.ctlRows=parseCSV(DEMO.controlsCSV);
+  MODEL.prjRows=parseCSV(DEMO.projectCSV);
+  /* Update status indicators */
+  document.getElementById("demo-haz-status").textContent=`✓ ${MODEL.hazRows.rows.length} hazards · demo`;
+  document.getElementById("demo-ctl-status").textContent=`✓ ${MODEL.ctlRows.rows.length} controls · demo`;
+  document.getElementById("demo-prj-status").textContent=`✓ 1 row · DEMO-001`;
+  /* Stats */
+  const g=document.getElementById("demo-stats");
+  [["Hazards",MODEL.hazRows.rows.length],["Controls",MODEL.ctlRows.rows.length],["Program","DEMO-001"],["System","SEDAC Ref UAV"],["Phase","EMD"],["Next MS","CDR · 2026-06-15"]]
+  .forEach(([l,v])=>{g.innerHTML+=`<div class="demo-stat"><div class="demo-stat-label">${l}</div><div class="demo-stat-val" style="font-size:${String(v).length>12?"11":"18"}px">${v}</div></div>`;});
+  log("Demo dataset ready — 12 hazards, 13 controls (SEDAC Reference UAV System)","ok");
+}
+
+/* =============================================================================
+   RUN ANALYSIS — identical to full tool
+   ============================================================================= */
+function runAnalysis(){
+  document.getElementById("btn-demo-run").disabled=true;
+  document.getElementById("btn-demo-run").textContent="⚙ Running…";
+  log("Starting HTS analysis…");
+  ["val-panel","model-panel","completeness-panel","register-panel","analytics-panel","gap-panel","sens-panel","insights-panel","demo-cta"]
+    .forEach(id=>document.getElementById(id).style.display="block");
+
+  const{issues,schemaChecks}=validate();
+  renderMetaGrid();renderValAlerts(issues);renderSchemaTable(schemaChecks);renderDataPreviews();
+  if(issues.some(i=>i.sev==="error")){log("Validation errors — halted.","err");return;}
+  log(`Validation passed (${issues.filter(i=>i.sev==="warn").length} warnings)`,"ok");
+
+  const hazards=MODEL.hazRows.rows.map(r=>{
+    const sI=(r.severity_initial||"IV").toUpperCase(),pI=(r.probability_initial||"E").toUpperCase();
+    const sEv=(r.severity_event||sI).toUpperCase(),pEv=(r.probability_event||pI).toUpperCase();
+    const sTg=(r.severity_target||sI).toUpperCase(),pTg=(r.probability_target||pI).toUpperCase();
+    const sR=(r.severity_residual||sI).toUpperCase(),pR=(r.probability_residual||pI).toUpperCase();
+    const rac_i=racL(sI,pI),rac_ev=racL(sEv,pEv),rac_tg=racL(sTg,pTg),rac_r=racL(sR,pR);
+    const mdePresent=MDE_FIELDS.filter(f=>!isEmpty(r[f.key])).length;
+    const mdeScore=Math.round(mdePresent/MDE_FIELDS.length*100);
+    return{
+      hazard_id:r.hazard_id||"",title:r.title||"",description:r.description||"",
+      system:r.system||"unspecified",subsystem:r.subsystem||"",applicability:r.applicability||"",
+      mode:r.mode||"",causal_factor:r.causal_factor||"",effects:r.effects||"",mishap:r.mishap||"",
+      sev_init:sI,prob_init:pI,sev_event:sEv,prob_event:pEv,
+      sev_target:sTg,prob_target:pTg,sev_resid:sR,prob_resid:pR,
+      rac_initial:rac_i,rac_event:rac_ev,rac_target:rac_tg,rac_residual:rac_r,
+      rac_rank_init:RAC_RANK[rac_i],rac_rank_event:RAC_RANK[rac_ev],
+      rac_rank_target:RAC_RANK[rac_tg],rac_rank_resid:RAC_RANK[rac_r],
+      delta:RAC_RANK[rac_i]-RAC_RANK[rac_r],
+      mitigation_measures:r.mitigation_measures||"",
+      verification_method:r.verification_method||"",acting_person:r.acting_person||"",
+      risk_acceptance:r.risk_acceptance||"",risk_acceptance_authority:r.risk_acceptance_authority||"",
+      risk_acceptance_date:r.risk_acceptance_date||"",status:(r.status||"open").toLowerCase(),
+      source_task:r.source_task||"",date_identified:r.date_identified||"",date_updated:r.date_updated||"",
+      notes:r.notes||"",mdeScore,mdePresent,_raw:r,
+    };
+  });
+
+  const controls=(MODEL.ctlRows?.rows||[]).map(r=>({
+    control_id:r.control_id||"",hazard_ids:splitList(r.hazard_ids),
+    type:r.type||"",description:r.description||"",verification_method:r.verification_method||"",
+    verification_status:(r.verification_status||"planned").toLowerCase(),
+    responsible_party:r.responsible_party||"",target_rac:r.target_rac||"",
+    implemented_date:r.implemented_date||"",notes:r.notes||"",
+  }));
+  const project=MODEL.prjRows?.rows?.[0]||{};
+
+  const mdeFieldScores=MDE_FIELDS.map(f=>{const present=hazards.filter(h=>!isEmpty(h._raw[f.key])).length;return{...f,present,total:hazards.length,pct:hazards.length?Math.round(present/hazards.length*100):0};});
+  const overallCompleteness=Math.round(mdeFieldScores.reduce((s,f)=>s+f.pct,0)/mdeFieldScores.length);
+  const criticalFields=mdeFieldScores.filter(f=>f.critical);
+  const criticalCompleteness=Math.round(criticalFields.reduce((s,f)=>s+f.pct,0)/criticalFields.length);
+  const totalInitRisk=hazards.reduce((s,h)=>s+h.rac_rank_init,0);
+  const totalResidRisk=hazards.reduce((s,h)=>s+h.rac_rank_resid,0);
+  const RRI=totalInitRisk?(totalInitRisk-totalResidRisk)/totalInitRisk:0;
+  const closedCount=hazards.filter(h=>h.status==="closed"||h.status==="accepted").length;
+  const openCount=hazards.filter(h=>h.status==="open").length;
+  const openHighSerious=hazards.filter(h=>h.rac_rank_init>=3&&h.status==="open");
+  const noVerif=hazards.filter(h=>isEmpty(h.verification_method));
+  const closureRate=hazards.length?closedCount/hazards.length:0;
+  const noAcceptance=hazards.filter(h=>isEmpty(h.risk_acceptance)&&h.rac_rank_resid>=2);
+  const residHighSerious=hazards.filter(h=>h.rac_rank_resid>=3);
+  const ctlByHazard={};
+  hazards.forEach(h=>{ctlByHazard[h.hazard_id]=[];});
+  controls.forEach(c=>{c.hazard_ids.forEach(hid=>{if(ctlByHazard[hid])ctlByHazard[hid].push(c);});});
+  const noCtl=hazards.filter(h=>ctlByHazard[h.hazard_id].length===0&&h.rac_rank_init>=3&&h.status!=="closed"&&h.status!=="accepted");
+  const unverifiedCtlOnHighRisk=controls.filter(c=>c.verification_status!=="complete"&&c.hazard_ids.some(hid=>{const h=hazards.find(x=>x.hazard_id===hid);return h&&h.rac_rank_init>=3;}));
+  const sysMap={};
+  hazards.forEach(h=>{const k=h.system;if(!sysMap[k])sysMap[k]={system:k,hazards:[],initSum:0,residSum:0,maxInit:0};sysMap[k].hazards.push(h);sysMap[k].initSum+=h.rac_rank_init;sysMap[k].residSum+=h.rac_rank_resid;sysMap[k].maxInit=Math.max(sysMap[k].maxInit,h.rac_rank_init);});
+  const sysRanked=Object.values(sysMap).sort((a,b)=>b.initSum-a.initSum);
+  const phaseMap={};
+  hazards.forEach(h=>{const p=h.mode||"unspecified";if(!phaseMap[p])phaseMap[p]={phase:p,count:0,maxInit:0};phaseMap[p].count++;phaseMap[p].maxInit=Math.max(phaseMap[p].maxInit,h.rac_rank_init);});
+  const sourceMap={};
+  hazards.forEach(h=>{const s=h.source_task||"unknown";sourceMap[s]=(sourceMap[s]||0)+1;});
+
+  MODEL.hazards=hazards;MODEL.controls=controls;MODEL.project=project;
+  MODEL.analysis={
+    mdeFieldScores,overallCompleteness,criticalCompleteness,
+    totalInitRisk,totalResidRisk,RRI,
+    closedCount,openCount,openHighSerious,noVerif,closureRate,
+    noAcceptance,residHighSerious,ctlByHazard,
+    noCtl,unverifiedCtlOnHighRisk,sysRanked,phaseMap,sourceMap,
+    counts:{
+      total:hazards.length,open:openCount,mitigated:hazards.filter(h=>h.status==="mitigated").length,
+      closed:hazards.filter(h=>h.status==="closed").length,accepted:hazards.filter(h=>h.status==="accepted").length,
+      high:hazards.filter(h=>h.rac_initial==="High").length,
+      serious:hazards.filter(h=>h.rac_initial==="Serious").length,
+      medium:hazards.filter(h=>h.rac_initial==="Medium").length,
+      low:hazards.filter(h=>h.rac_initial==="Low").length,
+      controls:controls.length,
+      ctlComplete:controls.filter(c=>c.verification_status==="complete").length,
+    }
+  };
+
+  renderMDEMatrix();populateFilters();renderHTSTable();renderCompletenessPanel();
+  renderAnalyticsCharts();renderGapTables();renderSensitivityInit();renderInsights();
+
+  document.getElementById("top-class").textContent=(project.classification||"UNMARKED").toUpperCase();
+  document.getElementById("btn-demo-run").textContent="✓ Analysis Complete — Scroll to explore";
+  log(`HTS analysis complete — ${hazards.length} hazards, ${controls.length} controls, MDE completeness ${overallCompleteness}%.`,"ok");
+}
+
+/* =============================================================================
+   RENDERERS — identical to full tool
+   ============================================================================= */
+function renderMetaGrid(){
+  const g=document.getElementById("meta-grid");g.innerHTML="";
+  [["Hazards",MODEL.hazRows?.rows?.length??0],["Controls",MODEL.ctlRows?.rows?.length??0],
+   ["Program",MODEL.prjRows?.rows?.[0]?.program_id||"—"],["Phase",MODEL.prjRows?.rows?.[0]?.program_phase||"—"]]
+  .forEach(([k,v])=>{const el=document.createElement("div");el.className="meta-item";el.innerHTML=`<div class="m-label">${k}</div><div class="m-val" style="font-size:${String(v).length>8?"12":"16"}px">${v}</div>`;g.appendChild(el);});
+}
+function renderValAlerts(issues){
+  const c=document.getElementById("val-alerts");c.innerHTML="";
+  const e=issues.filter(i=>i.sev==="error"),w=issues.filter(i=>i.sev==="warn");
+  if(e.length)c.innerHTML+=`<div class="alert-danger"><span class="alert-icon">!</span><div><strong>${e.length} error(s)</strong>: ${e.slice(0,3).map(x=>x.message).join("; ")}</div></div>`;
+  if(w.length)c.innerHTML+=`<div class="alert-warn"><span class="alert-icon">~</span><div><strong>${w.length} warning(s)</strong>: ${w.slice(0,3).map(x=>x.message).join("; ")}</div></div>`;
+  if(!e.length&&!w.length)c.innerHTML=`<div class="alert-ok"><span class="alert-icon">✓</span><div>All schema checks passed — demo dataset validated.</div></div>`;
+}
+function renderSchemaTable(checks){
+  const b=document.getElementById("schema-body");b.innerHTML="";
+  checks.forEach(c=>{const tr=document.createElement("tr");tr.innerHTML=`<td>hazards.csv</td><td>${c.col}</td><td>${c.mde?"<strong>MDE</strong>":"optional"}</td><td>${c.ok?'<span class="badge badge-low">present</span>':(c.mde?'<span class="badge badge-high">missing</span>':'<span class="badge badge-gray">absent</span>')}</td>`;b.appendChild(tr);});
+}
+function renderDataPreviews(){
+  const render=(id,rows)=>{const t=document.getElementById(id);if(!rows?.length){t.innerHTML="<thead><tr><th>—</th></tr></thead><tbody><tr><td>no data</td></tr></tbody>";return;}const h=Object.keys(rows[0]);t.innerHTML=`<thead><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.slice(0,15).map(r=>"<tr>"+h.map(c=>`<td>${(r[c]||"").toString().slice(0,60)}</td>`).join("")+"</tr>").join("")}</tbody>`;};
+  render("tbl-preview-haz",MODEL.hazRows?.rows);render("tbl-preview-ctl",MODEL.ctlRows?.rows);render("tbl-preview-prj",MODEL.prjRows?.rows);
+}
+function renderMDEMatrix(){
+  const w=document.getElementById("mde-field-matrix");if(!w)return;
+  w.innerHTML=(MODEL.analysis?.mdeFieldScores||[]).map(f=>{const cls=f.pct>=80?"fc-ok":f.pct>=50?"fc-warn":"fc-bad";return`<div class="field-chip ${cls}"><div class="fc-name">${f.label}${f.critical?' <span style="color:var(--amber)">*</span>':""}</div><div class="fc-score">${f.pct}%</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${f.present}/${f.total} records</div></div>`;}).join("");
+}
+function renderCompletenessPanel(){
+  const a=MODEL.analysis;
+  const pct=a.overallCompleteness;
+  const circ=2*Math.PI*50;
+  const offset=circ*(1-pct/100);
+  const fill=document.getElementById("gauge-fill");
+  const gColor=pct>=80?"var(--rac-low)":pct>=60?"var(--amber)":"var(--rac-serious)";
+  fill.style.stroke=gColor;fill.style.strokeDashoffset=offset;
+  document.getElementById("gauge-pct").textContent=pct+"%";
+  const cf=document.getElementById("completeness-fields");cf.innerHTML="";
+  a.mdeFieldScores.filter(f=>f.critical).forEach(f=>{
+    const bColor=f.pct>=80?"var(--rac-low)":f.pct>=50?"var(--amber)":"var(--rac-serious)";
+    cf.innerHTML+=`<div class="cf-row"><div class="cf-label">${f.label}</div><div class="cf-bar-wrap"><div class="cf-bar" style="width:${f.pct}%;background:${bColor}"></div></div><div class="cf-pct">${f.pct}%</div><div class="cf-count">${f.present}/${f.total}</div></div>`;
+  });
+  const mf=document.getElementById("mde-full-matrix");
+  mf.innerHTML=a.mdeFieldScores.map(f=>{const cls=f.pct>=80?"fc-ok":f.pct>=50?"fc-warn":"fc-bad";return`<div class="field-chip ${cls}"><div class="fc-name">${f.label}${f.critical?' <span style="color:var(--amber)">*</span>':""}</div><div class="fc-score">${f.pct}%</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${f.present}/${f.total}</div></div>`;}).join("");
+  const g=document.getElementById("completeness-kpi-grid");g.innerHTML="";
+  [{lbl:"Overall Completeness",val:pct+"%",sub:"all MDE fields",flag:pct>=80?"low":pct>=60?"medium":"serious"},
+   {lbl:"Critical MDE Score",val:a.criticalCompleteness+"%",sub:"§101.2.6 critical fields",flag:a.criticalCompleteness>=85?"low":a.criticalCompleteness>=65?"medium":"serious"},
+   {lbl:"Hazards fully complete",val:MODEL.hazards.filter(h=>h.mdeScore===100).length,sub:`of ${MODEL.hazards.length} total`,flag:""},
+   {lbl:"Avg record completeness",val:Math.round(MODEL.hazards.reduce((s,h)=>s+h.mdeScore,0)/MODEL.hazards.length)+"%",sub:"per-record MDE average",flag:""},
+   {lbl:"Missing verification",val:a.noVerif.length,sub:"records with no VM field",flag:a.noVerif.length===0?"low":a.noVerif.length<=3?"medium":"serious"},
+   {lbl:"Missing acceptance",val:a.noAcceptance.length,sub:"Medium+ residual, no acceptance",flag:a.noAcceptance.length===0?"low":"serious"},
+  ].forEach(k=>{const el=document.createElement("div");el.className="result-card"+(k.flag?` flag-${k.flag}`:"");el.innerHTML=`<div class="r-label">${k.lbl}</div><div class="r-val">${k.val}</div><div class="r-sub">${k.sub}</div>`;g.appendChild(el);});
+}
+function populateFilters(){
+  const hz=MODEL.hazards;
+  const systems=[...new Set(hz.map(h=>h.system))].sort();
+  const phases=[...new Set(hz.map(h=>h.mode||"unspecified"))].sort();
+  const sources=[...new Set(hz.map(h=>h.source_task||"unknown"))].sort();
+  document.getElementById("filter-system").innerHTML='<option value="">All Systems</option>'+systems.map(s=>`<option>${s}</option>`).join("");
+  document.getElementById("filter-phase").innerHTML='<option value="">All Phases</option>'+phases.map(p=>`<option>${p}</option>`).join("");
+  document.getElementById("filter-source").innerHTML='<option value="">All Source Tasks</option>'+sources.map(s=>`<option>${s}</option>`).join("");
+}
+function sortHTS(th){
+  const col=th.dataset.col;
+  if(htsSort.col===col)htsSort.dir=htsSort.dir==="asc"?"desc":"asc";
+  else{htsSort.col=col;htsSort.dir="desc";}
+  document.querySelectorAll(".hts-table thead th").forEach(t=>t.classList.remove("sort-asc","sort-desc"));
+  th.classList.add(htsSort.dir==="asc"?"sort-asc":"sort-desc");
+  renderHTSTable();
+}
+function clearHTSFilters(){
+  ["filter-rac","filter-status","filter-system","filter-phase","filter-source"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  document.getElementById("hts-search").value="";
+  renderHTSTable();
+}
+function renderHTSTable(){
+  const rac=document.getElementById("filter-rac")?.value||"";
+  const status=document.getElementById("filter-status")?.value||"";
+  const system=document.getElementById("filter-system")?.value||"";
+  const phase=document.getElementById("filter-phase")?.value||"";
+  const source=document.getElementById("filter-source")?.value||"";
+  const search=(document.getElementById("hts-search")?.value||"").toLowerCase();
+  let hz=[...MODEL.hazards];
+  if(rac)hz=hz.filter(h=>h.rac_initial===rac);
+  if(status)hz=hz.filter(h=>h.status===status);
+  if(system)hz=hz.filter(h=>h.system===system);
+  if(phase)hz=hz.filter(h=>(h.mode||"unspecified")===phase);
+  if(source)hz=hz.filter(h=>(h.source_task||"unknown")===source);
+  if(search)hz=hz.filter(h=>(h.hazard_id+h.title+h.system+h.subsystem+h.causal_factor+h.effects).toLowerCase().includes(search));
+  hz.sort((a,b)=>{let va=a[htsSort.col]??0,vb=b[htsSort.col]??0;if(typeof va==="string")va=va.toLowerCase();if(typeof vb==="string")vb=vb.toLowerCase();return htsSort.dir==="asc"?(va>vb?1:va<vb?-1:0):(va<vb?1:va>vb?-1:0);});
+  document.getElementById("hts-count").textContent=`${hz.length} of ${MODEL.hazards.length} hazards`;
+  const tbody=document.getElementById("hts-tbody");tbody.innerHTML="";
+  hz.forEach(h=>{
+    const tr=document.createElement("tr");tr.dataset.hid=h.hazard_id;
+    const delta=h.delta;
+    const deltaColor=delta>0?"#6ecf90":delta===0?"var(--amber)":"#f08888";
+    const mdeColor=h.mdeScore>=80?"#6ecf90":h.mdeScore>=60?"var(--amber)":"#f08888";
+    tr.innerHTML=`
+      <td><span class="hts-id">${h.hazard_id}</span></td>
+      <td class="hts-title" title="${h.title}">${h.title}</td>
+      <td>${h.system}</td><td>${h.subsystem||"—"}</td><td>${h.mode||"—"}</td>
+      <td>${h.sev_init}</td><td>${h.prob_init}</td>
+      <td><span class="badge badge-${h.rac_initial.toLowerCase()}">${h.rac_initial}</span></td>
+      <td><span class="badge badge-${h.rac_event.toLowerCase()}">${h.rac_event}</span></td>
+      <td><span class="badge badge-${h.rac_target.toLowerCase()}">${h.rac_target}</span></td>
+      <td><span class="badge badge-${h.rac_residual.toLowerCase()}">${h.rac_residual}</span></td>
+      <td style="color:${deltaColor}">${delta>=0?"+":""}${delta}</td>
+      <td><span class="badge badge-${h.status}">${h.status}</span></td>
+      <td>${h.acting_person||"—"}</td>
+      <td style="font-family:var(--mono);font-size:9px">${h.source_task||"—"}</td>
+      <td>${h.verification_method?h.verification_method.split("|").map(v=>`<span class="badge badge-gray" style="margin:1px">${v}</span>`).join(""):'<span style="color:var(--red);font-size:8px">NONE</span>'}</td>
+      <td style="color:${mdeColor};font-family:var(--display);font-size:11px">${h.mdeScore}%</td>`;
+    tr.onclick=()=>openDetail(h.hazard_id);
+    tbody.appendChild(tr);
+  });
+}
+function openDetail(hid){
+  const h=MODEL.hazards.find(x=>x.hazard_id===hid);if(!h)return;
+  document.querySelectorAll(".hts-table tbody tr").forEach(tr=>tr.classList.remove("row-selected"));
+  document.querySelector(`.hts-table tbody tr[data-hid="${hid}"]`)?.classList.add("row-selected");
+  const ctls=MODEL.analysis.ctlByHazard[hid]||[];
+  const mdeGaps=MDE_FIELDS.filter(f=>isEmpty(h._raw[f.key]));
+  document.getElementById("dp-id").textContent=h.hazard_id;
+  document.getElementById("dp-title").textContent=h.title;
+  document.getElementById("dp-body").innerHTML=`
+    <div class="dp-grid">
+      <div class="dp-field"><div class="dp-field-label">System</div><div class="dp-field-val">${h.system}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Subsystem</div><div class="dp-field-val">${h.subsystem||"—"}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Mode</div><div class="dp-field-val">${h.mode||"—"}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Status</div><div class="dp-field-val"><span class="badge badge-${h.status}">${h.status}</span></div></div>
+      <div class="dp-field"><div class="dp-field-label">RAC Initial</div><div class="dp-field-val"><span class="badge badge-${h.rac_initial.toLowerCase()}">${h.rac_initial}</span> (${h.sev_init}-${h.prob_init})</div></div>
+      <div class="dp-field"><div class="dp-field-label">RAC Event</div><div class="dp-field-val"><span class="badge badge-${h.rac_event.toLowerCase()}">${h.rac_event}</span> (${h.sev_event}-${h.prob_event})</div></div>
+      <div class="dp-field"><div class="dp-field-label">RAC Target</div><div class="dp-field-val"><span class="badge badge-${h.rac_target.toLowerCase()}">${h.rac_target}</span> (${h.sev_target}-${h.prob_target})</div></div>
+      <div class="dp-field"><div class="dp-field-label">RAC Residual</div><div class="dp-field-val"><span class="badge badge-${h.rac_residual.toLowerCase()}">${h.rac_residual}</span> (${h.sev_resid}-${h.prob_resid}) &nbsp;<span style="color:${h.delta>0?"#6ecf90":"var(--amber)"}">Δ ${h.delta>=0?"+":""}${h.delta}</span></div></div>
+    </div>
+    <div class="dp-field" style="margin-bottom:8px"><div class="dp-field-label">Description</div><div class="dp-field-val">${h.description||"—"}</div></div>
+    <div class="dp-grid" style="grid-template-columns:1fr 1fr">
+      <div class="dp-field"><div class="dp-field-label">Causal Factor</div><div class="dp-field-val">${h.causal_factor||'<span style="color:var(--red)">MISSING</span>'}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Effects</div><div class="dp-field-val">${h.effects||'<span style="color:var(--red)">MISSING</span>'}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Mishap</div><div class="dp-field-val">${h.mishap||"—"}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Acting Person</div><div class="dp-field-val">${h.acting_person||'<span style="color:var(--red)">MISSING</span>'}</div></div>
+    </div>
+    <div class="dp-field" style="margin:8px 0"><div class="dp-field-label">Mitigation Measures</div><div class="dp-field-val">${h.mitigation_measures||'<span style="color:var(--red)">MISSING — required MDE</span>'}</div></div>
+    <div class="dp-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="dp-field"><div class="dp-field-label">Verification Method</div><div class="dp-field-val">${h.verification_method||'<span style="color:var(--red)">MISSING</span>'}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Source Task</div><div class="dp-field-val">${h.source_task||"—"}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Date Identified</div><div class="dp-field-val">${h.date_identified||"—"}</div></div>
+    </div>
+    <div class="dp-field" style="margin:8px 0"><div class="dp-field-label">Risk Acceptance</div><div class="dp-field-val">${h.risk_acceptance||'<span style="color:var(--amber)">Not documented</span>'}</div></div>
+    <div class="dp-grid" style="grid-template-columns:1fr 1fr">
+      <div class="dp-field"><div class="dp-field-label">Acceptance Authority</div><div class="dp-field-val">${h.risk_acceptance_authority||"—"}</div></div>
+      <div class="dp-field"><div class="dp-field-label">Acceptance Date</div><div class="dp-field-val">${h.risk_acceptance_date||"—"}</div></div>
+    </div>
+    ${h.notes?`<div class="dp-field" style="margin-top:8px"><div class="dp-field-label">Notes</div><div class="dp-field-val" style="color:var(--muted)">${h.notes}</div></div>`:""}
+    <div style="margin-top:12px">
+      <div class="dp-field-label" style="margin-bottom:6px">Linked Controls (${ctls.length})</div>
+      ${ctls.length?ctls.map(c=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;font-family:var(--mono);font-size:9.5px"><span class="badge badge-info">${c.control_id}</span><span class="badge badge-${c.verification_status.replace("-","").toLowerCase()}">${c.verification_status}</span><span style="color:#c0d4ee">${c.type} — ${c.description.slice(0,80)}</span></div>`).join(""):'<span style="color:var(--amber);font-family:var(--mono);font-size:9px">No controls linked</span>'}
+    </div>
+    <div style="margin-top:10px">
+      <div class="dp-field-label" style="margin-bottom:4px">MDE completeness (${h.mdeScore}%) — missing fields:</div>
+      <div class="mde-row">${mdeGaps.length?mdeGaps.map(f=>`<span class="mde-chip mde-missing">${f.label}</span>`).join(""):'<span class="mde-chip mde-present">All MDEs present</span>'}</div>
+    </div>`;
+  const dp=document.getElementById("detail-panel");dp.classList.add("open");dp.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function closeDetail(){document.getElementById("detail-panel").classList.remove("open");document.querySelectorAll(".hts-table tbody tr").forEach(tr=>tr.classList.remove("row-selected"));}
+
+/* ── Charts ── */
+const CFONT={family:"Courier New",size:10};
+const CLEGEND={position:"bottom",labels:{font:CFONT,color:"#7a9fcc",boxWidth:12}};
+const CTICKS={font:CFONT,color:"#7a9fcc"};
+const CGRID={color:"rgba(255,255,255,0.06)"};
+function dChart(id){if(MODEL.charts[id]){MODEL.charts[id].destroy();delete MODEL.charts[id];}}
+
+function renderAnalyticsCharts(){
+  const hz=MODEL.hazards,a=MODEL.analysis;
+  const levels=["High","Serious","Medium","Low"];
+  dChart("racDist");
+  MODEL.charts.racDist=new Chart(document.getElementById("chart-rac-dist"),{type:"bar",data:{labels:levels,datasets:[
+    {label:"Initial",data:levels.map(l=>hz.filter(h=>h.rac_initial===l).length),backgroundColor:levels.map(l=>RAC_COLOR[l]),borderWidth:0},
+    {label:"Event",data:levels.map(l=>hz.filter(h=>h.rac_event===l).length),backgroundColor:levels.map(l=>RAC_COLOR[l]+"99"),borderWidth:0},
+    {label:"Target",data:levels.map(l=>hz.filter(h=>h.rac_target===l).length),backgroundColor:levels.map(l=>RAC_COLOR[l]+"66"),borderWidth:0},
+    {label:"Residual",data:levels.map(l=>hz.filter(h=>h.rac_residual===l).length),backgroundColor:levels.map(l=>RAC_COLOR[l]+"44"),borderWidth:1,borderColor:levels.map(l=>RAC_COLOR[l])},
+  ]},options:{plugins:{legend:CLEGEND},scales:{y:{beginAtZero:true,ticks:CTICKS,grid:CGRID},x:{ticks:CTICKS,grid:CGRID}}}});
+  const sorted=[...hz].sort((a,b)=>b.delta-a.delta||b.rac_rank_init-a.rac_rank_init).slice(0,15);
+  dChart("delta");
+  MODEL.charts.delta=new Chart(document.getElementById("chart-delta"),{type:"bar",data:{labels:sorted.map(h=>h.hazard_id),datasets:[
+    {label:"Initial RAC rank",data:sorted.map(h=>h.rac_rank_init),backgroundColor:sorted.map(h=>RAC_COLOR[h.rac_initial]+"aa"),borderWidth:0},
+    {label:"Residual RAC rank",data:sorted.map(h=>h.rac_rank_resid),backgroundColor:sorted.map(h=>RAC_COLOR[h.rac_residual]+"55"),borderWidth:1,borderColor:sorted.map(h=>RAC_COLOR[h.rac_residual])},
+  ]},options:{indexAxis:"y",plugins:{legend:CLEGEND},scales:{x:{min:0,max:4,ticks:{...CTICKS,callback:v=>["","Low","Med","Ser","High"][v]||v},grid:CGRID},y:{ticks:CTICKS,grid:CGRID}}}});
+  dChart("subsys");
+  MODEL.charts.subsys=new Chart(document.getElementById("chart-subsys"),{type:"bar",data:{labels:a.sysRanked.map(s=>s.system),datasets:[
+    {label:"Initial risk",data:a.sysRanked.map(s=>s.initSum),backgroundColor:a.sysRanked.map(s=>RAC_COLOR[invRank(s.maxInit)]+"cc"),borderWidth:0},
+    {label:"Residual risk",data:a.sysRanked.map(s=>s.residSum),backgroundColor:a.sysRanked.map(s=>RAC_COLOR[invRank(s.maxInit)]+"44"),borderWidth:1,borderColor:a.sysRanked.map(s=>RAC_COLOR[invRank(s.maxInit)])},
+  ]},options:{indexAxis:"y",plugins:{legend:CLEGEND},scales:{x:{beginAtZero:true,ticks:CTICKS,grid:CGRID},y:{ticks:CTICKS,grid:CGRID}}}});
+  const phases=Object.values(a.phaseMap).sort((a,b)=>b.count-a.count);
+  dChart("phase");
+  MODEL.charts.phase=new Chart(document.getElementById("chart-phase"),{type:"bar",data:{labels:phases.map(p=>p.phase),datasets:[{label:"Hazard count",data:phases.map(p=>p.count),backgroundColor:"#1A3C8F",borderWidth:0}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:CTICKS,grid:CGRID},x:{ticks:CTICKS,grid:CGRID}}}});
+  const srcs=Object.entries(a.sourceMap).sort((a,b)=>b[1]-a[1]);
+  dChart("source");
+  MODEL.charts.source=new Chart(document.getElementById("chart-source"),{type:"doughnut",data:{labels:srcs.map(s=>"Task "+s[0]),datasets:[{data:srcs.map(s=>s[1]),backgroundColor:["#1A3C8F","#C41E2E","#E8B820","#2E7D4F","#4A90D9","#8E44AD"],borderWidth:0}]},options:{plugins:{legend:CLEGEND}}});
+  const sc=a.counts;
+  dChart("status");
+  MODEL.charts.status=new Chart(document.getElementById("chart-status"),{type:"doughnut",data:{labels:["Open","Mitigated","Closed","Accepted"],datasets:[{data:[sc.open,sc.mitigated,sc.closed,sc.accepted],backgroundColor:["#C41E2E","#1A3C8F","#2E7D4F","#C89000"],borderWidth:0}]},options:{plugins:{legend:CLEGEND}}});
+  const ctlStatusMap={complete:0,planned:0,"in-progress":0,other:0};
+  MODEL.controls.forEach(c=>{const s=c.verification_status;if(ctlStatusMap[s]!==undefined)ctlStatusMap[s]++;else ctlStatusMap.other++;});
+  dChart("ctlStatus");
+  MODEL.charts.ctlStatus=new Chart(document.getElementById("chart-ctl-status"),{type:"doughnut",data:{labels:["Complete","In-Progress","Planned","Other"],datasets:[{data:[ctlStatusMap.complete,ctlStatusMap["in-progress"],ctlStatusMap.planned,ctlStatusMap.other],backgroundColor:["#2E7D4F","#C89000","#1A3C8F","#555"],borderWidth:0}]},options:{plugins:{legend:CLEGEND}}});
+}
+
+/* ── Gap Tables ── */
+function gapTable(hz,cols,empty){
+  if(!hz.length)return`<thead><tr><th>Result</th></tr></thead><tbody><tr><td>✓ ${empty}</td></tr></tbody>`;
+  const hdr=cols.map(c=>`<th>${c.label}</th>`).join("");
+  const body=hz.map(h=>`<tr>${cols.map(c=>{const v=c.render?c.render(h):(h[c.key]||"—");return`<td>${v}</td>`;}).join("")}</tr>`).join("");
+  return`<thead><tr>${hdr}</tr></thead><tbody>${body}</tbody>`;
+}
+const COMMON_COLS=[
+  {key:"hazard_id",label:"Hazard ID",render:h=>`<span class="hts-id">${h.hazard_id}</span>`},
+  {key:"title",label:"Title"},{key:"system",label:"System"},
+  {key:"rac_initial",label:"RAC Init",render:h=>`<span class="badge badge-${h.rac_initial.toLowerCase()}">${h.rac_initial}</span>`},
+  {key:"rac_residual",label:"RAC Resid",render:h=>`<span class="badge badge-${h.rac_residual.toLowerCase()}">${h.rac_residual}</span>`},
+  {key:"status",label:"Status",render:h=>`<span class="badge badge-${h.status}">${h.status}</span>`},
+];
+function renderGapTables(){
+  const a=MODEL.analysis;
+  document.getElementById("tbl-open-high").innerHTML=gapTable(a.openHighSerious,[...COMMON_COLS,{key:"acting_person",label:"Owner"},{key:"mitigation_measures",label:"Mitigation (excerpt)",render:h=>(h.mitigation_measures||"NONE").slice(0,80)}],"No open High/Serious RAC hazards.");
+  document.getElementById("tbl-resid-high").innerHTML=gapTable(a.residHighSerious,[...COMMON_COLS,{key:"risk_acceptance_authority",label:"Acceptance Authority"},{key:"risk_acceptance_date",label:"Acceptance Date"}],"No residual High/Serious RAC hazards.");
+  document.getElementById("tbl-no-acceptance").innerHTML=gapTable(a.noAcceptance,[...COMMON_COLS,{key:"acting_person",label:"Owner"}],"All Medium+ residual hazards have documented risk acceptance.");
+  document.getElementById("tbl-no-verif").innerHTML=gapTable(a.noVerif,[{key:"hazard_id",label:"Hazard ID",render:h=>`<span class="hts-id">${h.hazard_id}</span>`},{key:"title",label:"Title"},{key:"system",label:"System"},{key:"rac_initial",label:"RAC Init",render:h=>`<span class="badge badge-${h.rac_initial.toLowerCase()}">${h.rac_initial}</span>`},{key:"status",label:"Status",render:h=>`<span class="badge badge-${h.status}">${h.status}</span>`}],"All hazards have verification methods defined.");
+  document.getElementById("tbl-unverified-ctl").innerHTML=function(){
+    const uc=MODEL.analysis.unverifiedCtlOnHighRisk;
+    if(!uc.length)return`<thead><tr><th>Result</th></tr></thead><tbody><tr><td>✓ All controls on High/Serious hazards are verified or closed.</td></tr></tbody>`;
+    return`<thead><tr><th>Control ID</th><th>Hazards</th><th>Type</th><th>Verif Status</th><th>Owner</th><th>Description</th></tr></thead><tbody>${uc.map(c=>`<tr><td class="hts-id">${c.control_id}</td><td>${c.hazard_ids.join(", ")}</td><td>${c.type}</td><td><span class="badge badge-${c.verification_status.replace("-","").toLowerCase()}">${c.verification_status}</span></td><td>${c.responsible_party||"—"}</td><td>${c.description.slice(0,80)}</td></tr>`).join("")}</tbody>`;
+  }();
+}
+
+/* ── Sensitivity ── */
+function renderSensitivityInit(){applySensitivity();}
+function applySensitivity(){
+  const sSev=+document.getElementById("sens-sev").value;
+  const sProb=+document.getElementById("sens-prob").value;
+  const scope=document.getElementById("sens-scope")?.value||"all";
+  document.getElementById("sens-sev-val").textContent=sSev;
+  document.getElementById("sens-prob-val").textContent=sProb;
+  let hz=[...MODEL.hazards];
+  if(scope==="open")hz=hz.filter(h=>h.status==="open");
+  if(scope==="highserious")hz=hz.filter(h=>h.rac_rank_init>=3);
+  const rows=hz.map(h=>{const sN=decrSev(h.sev_resid,sSev),pN=decrProb(h.prob_resid,sProb),rN=racL(sN,pN);return{h,sN,pN,rN,deltaNew:h.rac_rank_init-RAC_RANK[rN]};});
+  const simInit=rows.reduce((s,r)=>s+r.h.rac_rank_init,0);
+  const simResid=rows.reduce((s,r)=>s+RAC_RANK[r.rN],0);
+  const simRRI=simInit?(simInit-simResid)/simInit:0;
+  const sc=document.getElementById("sens-summary-cards");sc.innerHTML="";
+  [{lbl:"Simulated High",val:rows.filter(r=>r.rN==="High").length,flag:rows.filter(r=>r.rN==="High").length>0?"high":"low"},
+   {lbl:"Simulated Serious",val:rows.filter(r=>r.rN==="Serious").length,flag:rows.filter(r=>r.rN==="Serious").length>0?"serious":"low"},
+   {lbl:"Sim RRI",val:(simRRI*100).toFixed(1)+"%",flag:simRRI>=0.5?"low":simRRI>=0.3?"medium":"serious"},
+   {lbl:"Hazards modeled",val:rows.length,flag:""}
+  ].forEach(k=>{const el=document.createElement("div");el.className="result-card"+(k.flag?` flag-${k.flag}`:"");el.style.minWidth="130px";el.innerHTML=`<div class="r-label">${k.lbl}</div><div class="r-val">${k.val}</div>`;sc.appendChild(el);});
+  const t=document.getElementById("tbl-sens");
+  t.innerHTML=`<thead><tr><th>Hazard ID</th><th>Title</th><th>Cur Resid</th><th>Cur RAC</th><th>Simulated</th><th>Sim RAC</th><th>Δ Total</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="hts-id">${r.h.hazard_id}</td><td>${r.h.title}</td><td>${r.h.sev_resid}-${r.h.prob_resid}</td><td><span class="badge badge-${r.h.rac_residual.toLowerCase()}">${r.h.rac_residual}</span></td><td>${r.sN}-${r.pN}</td><td><span class="badge badge-${r.rN.toLowerCase()}">${r.rN}</span></td><td style="color:${r.deltaNew>0?"#6ecf90":r.deltaNew===0?"var(--amber)":"#f08888"}">${r.deltaNew>=0?"+":""}${r.deltaNew}</td></tr>`).join("")}</tbody>`;
+}
+
+/* ── Insights ── */
+function renderInsights(){
+  const a=MODEL.analysis,hz=MODEL.hazards;
+  const list=document.getElementById("insight-list");list.innerHTML="";
+  const add=(k,i,h)=>list.insertAdjacentHTML("beforeend",`<li class="insight-item ${k}"><span class="insight-icon">${i}</span><div>${h}</div></li>`);
+  if(a.overallCompleteness>=85)add("ok","✓",`<strong>HTS completeness ${a.overallCompleteness}%</strong> — all minimum data elements are well-populated. Critical MDE score: ${a.criticalCompleteness}%.`);
+  else if(a.overallCompleteness>=65)add("warn","~",`<strong>HTS completeness ${a.overallCompleteness}%</strong> — some MDEs are incomplete. Critical MDE score: ${a.criticalCompleteness}%. Review missing fields before government submission.`);
+  else add("high","!",`<strong>HTS completeness ${a.overallCompleteness}%</strong> — significant MDE gaps.`);
+  if(a.openHighSerious.length===0)add("ok","✓","No open High/Serious RAC hazards. All elevated-risk items have been mitigated, accepted, or closed.");
+  else add("high","!",`<strong>${a.openHighSerious.length} open High/Serious hazard${a.openHighSerious.length===1?"":"s"}</strong> require immediate mitigation action: ${a.openHighSerious.slice(0,4).map(h=>h.hazard_id).join(", ")}${a.openHighSerious.length>4?` (+${a.openHighSerious.length-4} more)`:""}.`);
+  if(a.residHighSerious.length>0){const noLetter=a.residHighSerious.filter(h=>isEmpty(h.risk_acceptance_authority));add("high","!",`<strong>${a.residHighSerious.length} hazard${a.residHighSerious.length===1?"":"s"} at residual High/Serious RAC</strong>. Formal risk acceptance required from DAA or PM per MIL-STD 882E §4.3.7.${noLetter.length?` ${noLetter.length} have no acceptance authority documented.`:""}`);}
+  const rriPct=(a.RRI*100).toFixed(1);
+  if(a.RRI>=0.5)add("ok","↓",`<strong>Risk Reduction Index = ${rriPct}%.</strong> Planned controls reduce overall RAC rank-sum by more than half.`);
+  else if(a.RRI>=0.25)add("info","↓",`<strong>Risk Reduction Index = ${rriPct}%.</strong> Controls provide meaningful RAC reduction.`);
+  else add("warn","~",`<strong>Risk Reduction Index = ${rriPct}%.</strong> Residual risk is close to initial. Verify controls are adequate.`);
+  if(a.noVerif.length>0)add("warn","◇",`<strong>${a.noVerif.length} hazard${a.noVerif.length===1?"":"s"} missing a verification method</strong> — required MDE per §101.2.6: ${a.noVerif.slice(0,4).map(h=>h.hazard_id).join(", ")}${a.noVerif.length>4?` (+${a.noVerif.length-4} more)`:""}.`);
+  else add("ok","✓","All hazards have verification methods assigned — §101.2.6 MDE satisfied.");
+  if(a.noAcceptance.length>0)add("warn","◆",`<strong>${a.noAcceptance.length} hazard${a.noAcceptance.length===1?"":"s"} with Medium+ residual RAC have no documented risk acceptance</strong>. Complete before SSRR.`);
+  const crPct=(a.closureRate*100).toFixed(0);
+  if(a.closureRate>=0.6)add("ok","✓",`<strong>HTS closure rate ${crPct}%</strong> — majority of hazards are closed or formally accepted.`);
+  else add("info","§",`<strong>HTS closure rate ${crPct}%</strong> (${a.closedCount} of ${hz.length} closed/accepted). ${a.openCount} hazards remain open — prioritize High/Serious items for closure before CDR.`);
+  if(a.sysRanked.length){const top=a.sysRanked[0];const domPct=(top.initSum/a.totalInitRisk*100).toFixed(0);add("info","◆",`<strong>${top.system}</strong> is the dominant risk contributor (${domPct}% of total initial RAC rank-points).`);}
+  if(a.unverifiedCtlOnHighRisk.length>0)add("warn","!",`<strong>${a.unverifiedCtlOnHighRisk.length} control${a.unverifiedCtlOnHighRisk.length===1?"":"s"} on High/Serious hazards are not yet verified</strong>: ${a.unverifiedCtlOnHighRisk.slice(0,4).map(c=>c.control_id).join(", ")}.`);
+  else if(MODEL.controls.length>0)add("ok","✓","All controls on High/Serious hazards are verified or completed.");
+}
+
+/* ── Init ── */
+document.addEventListener("DOMContentLoaded",()=>{
+  initDemo();
+  /* Auto-run after a short delay so the page renders first */
+  setTimeout(()=>runAnalysis(),300);
+});
+</script>
+</body>
+</html>
